@@ -23,7 +23,7 @@ vector<float> sigmoid_d(const vector<float>&);
 vector<float> operator-(const vector<float>&, const vector<float>&);
 vector<float> operator+(const vector<float>&, const vector<float>&);
 vector<float> operator*(const vector<float>&, const vector<float>&);
-vector<float> transpoose(float*, const int, const int);
+vector<float> transpoose(const vector<float>&, const int, const int);
 void print(const vector<float>&, int, int);
 
 
@@ -68,9 +68,9 @@ int main(int argc, const char * argv[]) {
 		vector<float> pred = sigmoid(dot(L1, W2, 4, 6, 1));
 		vector<float> pred_error = y - pred;
 		vector<float> W2_delta = pred_error * sigmoid_d(pred);
-		vector<float> W1_delta = dot(W2_delta, transpoose(&W2[0], 6, 1), 4, 1, 6) * sigmoid_d(L1);
-		vector<float> dE_dW2 = dot(transpoose(&L1[0], 4, 6), W2_delta, 6, 4, 1);
-		vector<float> dE_dW1 = dot(transpoose(&X[0], 4, 4), W1_delta, 4, 4, 6);
+		vector<float> W1_delta = dot(W2_delta, transpoose(W2, 6, 1), 4, 1, 6) * sigmoid_d(L1);
+		vector<float> dE_dW2 = dot(transpoose(L1, 4, 6), W2_delta, 6, 4, 1);
+		vector<float> dE_dW1 = dot(transpoose(X, 4, 4), W1_delta, 4, 4, 6);
 		W2 = W2 + dE_dW2;
 		W1 = W1 + dE_dW1;
 
@@ -209,7 +209,7 @@ vector<float> operator*(const vector<float>& m1, const vector<float>& m2) {
 }
 
 
-vector<float> transpoose(float *m, const int C, const int R) {
+vector<float> transpoose(const vector<float>& m, const int C, const int R) {
 	/*
 		Returns a transposed matrix of input matrix.
 		<Inputs>
