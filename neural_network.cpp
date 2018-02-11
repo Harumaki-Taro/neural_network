@@ -15,6 +15,21 @@ using std::cout;
 using std::endl;
 
 
+vector<float> data {
+    5.1, 3.5, 1.4, 0.2,	//インスタンス1
+    4.9, 3.0, 1.4, 0.2,	//インスタンス2
+    6.2, 3.4, 5.4, 2.3, //インスタンス3
+    5.9, 3.0, 5.1, 1.8	//インスタンス4
+};
+
+vector<float> label {
+    1, 0,
+    1, 0,
+    0, 1,
+    0, 1
+};
+
+
 //
 // プロトタイプ宣言
 //
@@ -28,8 +43,8 @@ int main(int argc, const char * argv[]) {
     vector<float> pred;
 
 	for (unsigned int i = 0; i != 1000; ++i) {
-        pred = nn.forwardprop();
-        nn.backprop(pred);
+        pred = nn.forwardprop(data);
+        nn.backprop(label, pred);
 
 		if ( i ==  999) {
 			print(pred, 4, 2);
