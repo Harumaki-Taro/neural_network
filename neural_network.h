@@ -17,14 +17,14 @@ typedef struct {
 } Array;
 
 
-vector<float> W1 {
-     0.1,  0.5,  0.5, -0.5,  0.1,  0.5,
+vector<float> W1_ {
+     0.5,  0.5,  0.5, -0.5,  0.1,  0.5,
      0.5,  0.1, -0.5,  0.5,  0.5,  0.1,
      0.5, -0.5,  0.1,  0.5,  0.5,  0.5,
     -0.5,  0.5,  0.5,  0.1,  0.5,  0.5
 };
 
-vector<float> W2 {
+vector<float> W2_ {
 	 0.1,  0.5, -0.5,
 	 0.5, -0.1,  0.5,
 	-0.5,  0.5,  0.1,
@@ -34,7 +34,7 @@ vector<float> W2 {
 };
 
 
-vector<float> W3 {
+vector<float> W3_ {
 	0.1, 0.5,
 	0.5, 0.1,
 	0.1, 0.5
@@ -42,48 +42,86 @@ vector<float> W3 {
 
 
 typedef struct {
-    vector<float> delta;
+    vector<float> W;
+    int W_shape[2];
+    vector<float> b;
+    int b_shape;
+    function<vector<float>(vector<float>)> f;
+    function<vector<float>(vector<float>)> d_f;
+    vector<float> pre_activate;
+    vector<float> activated;
+    vector<float> W_delta;
     vector<float> dE_dW;
-}BackUnit;
+}Layer;
 
 
 class Neural_Network {
     /*
     */
 public:
-    vector<float> forwardprop(vector<float>);
-    void backprop(vector<float>, vector<float>);
+    vector<float> forwardprop(vector<float>, int, int);
+    void backprop(vector<float>, vector<float>, int);
     // void build_Layer(vector<float>, vector<float>, int, int, int, function<vector<float>>);
+    Neural_Network() {
+        Layer1.W = W1_;
+        Layer1.W_shape[0] = 4;
+        Layer1.W_shape[1] = 6;
+        Layer1.f = sigmoid;
+        Layer1.d_f = sigmoid_d;
+
+        Layer2.W = W2_;
+        Layer2.W_shape[0] = 6;
+        Layer2.W_shape[1] = 3;
+        Layer2.f = sigmoid;
+        Layer2.d_f = sigmoid_d;
+
+        Layer3.W = W3_;
+        Layer3.W_shape[0] = 3;
+        Layer3.W_shape[1] = 2;
+        Layer3.f = sigmoid;
+        Layer3.d_f = sigmoid_d;
+    };
 
 private:
     list<vector<float>> forward_list;
     list<vector<float>> backward_list;
 
-    vector<float> L0;
-    vector<float> L1;
-    vector<float> L2;
+    Layer Layer0;
+    Layer Layer1;
+    Layer Layer2;
+    Layer Layer3;
 };
 
-vector<float> Neural_Network::forwardprop(vector<float> X) {
-    L0 = X;
-    L1 = sigmoid(dot(L0, W1, 4, 4, 6));
-    L2 = sigmoid(dot(L1, W2, 4, 6, 3));
-    vector<float> pred = sigmoid(dot(L2, W3, 4, 3, 2));
+vector<float> Neural_Network::forwardprop(vector<float> X, int X_rows, int X_columns) {
+    Layer0.activated = X;
+    Layer0.W_shape[0] = X_rows;
+    Layer0.W_shape[1] = X_columns;
 
-    return pred;
+    Layer1.pre_activate = dot(Layer0.activated, Layer1.W, Layer0.W_shape[0], Layer0.W_shape[1], Layer1.W_shape[1]);
+    Layer1.activated = Layer1.f(Layer1.pre_activate);
+
+    Layer2.pre_activate = dot(Layer1.activated, Layer2.W, Layer1.W_shape[0], Layer1.W_shape[1], Layer2.W_shape[1]);
+    Layer2.activated = Layer2.f(Layer2.pre_activate);
+
+    Layer3.pre_activate = dot(Layer2.activated, Layer3.W, Layer2.W_shape[0], Layer2.W_shape[1], Layer3.W_shape[1]);
+    Layer3.activated = Layer3.f(Layer3.pre_activate);
+
+    vector<float> predict = Layer3.activated;
+
+    return predict;
 }
 
-void Neural_Network::backprop(vector<float> y, vector<float> pred) {
+void Neural_Network::backprop(vector<float> y, vector<float> pred, int batch_size) {
     vector<float> pred_error = y - pred;
-    vector<float> W3_delta = pred_error * sigmoid_d(pred);
-    vector<float> W2_delta = dot(W3_delta, transpoose(W3, 3, 2), 4, 2, 3) * sigmoid_d(L2);
-    vector<float> W1_delta = dot(W2_delta, transpoose(W2, 6, 3), 4, 3, 6) * sigmoid_d(L1);
-    vector<float> dE_dW3 = dot(transpoose(L2, 4, 3), W3_delta, 3, 4, 2);
-    vector<float> dE_dW2 = dot(transpoose(L1, 4, 6), W2_delta, 6, 4, 3);
-    vector<float> dE_dW1 = dot(transpoose(L0, 4, 4), W1_delta, 4, 4, 6);
-    W3 = W3 + dE_dW3;
-    W2 = W2 + dE_dW2;
-    W1 = W1 + dE_dW1;
+    Layer3.W_delta = pred_error * Layer3.d_f(pred);
+    Layer2.W_delta = dot(Layer3.W_delta, transpoose(Layer3.W, Layer3.W_shape[0], Layer3.W_shape[1]), batch_size, Layer3.W_shape[1], Layer3.W_shape[0]) * Layer2.d_f(Layer2.activated);
+    Layer1.W_delta = dot(Layer2.W_delta, transpoose(Layer2.W, Layer2.W_shape[0], Layer2.W_shape[1]), batch_size, Layer2.W_shape[1], Layer2.W_shape[0]) * Layer1.d_f(Layer1.activated);
+    Layer3.dE_dW = dot(transpoose(Layer2.activated, batch_size, Layer3.W_shape[0]), Layer3.W_delta, Layer3.W_shape[0], batch_size, Layer3.W_shape[1]);
+    Layer2.dE_dW = dot(transpoose(Layer1.activated, batch_size, Layer2.W_shape[0]), Layer2.W_delta, Layer2.W_shape[0], batch_size, Layer2.W_shape[1]);
+    Layer1.dE_dW = dot(transpoose(Layer0.activated, batch_size, Layer1.W_shape[0]), Layer1.W_delta, Layer1.W_shape[0], batch_size, Layer1.W_shape[1]);
+    Layer3.W = Layer3.W + Layer3.dE_dW;
+    Layer2.W = Layer2.W + Layer2.dE_dW;
+    Layer1.W = Layer1.W + Layer1.dE_dW;
 }
 
 

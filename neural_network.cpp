@@ -43,8 +43,8 @@ int main(int argc, const char * argv[]) {
     vector<float> pred;
 
 	for (unsigned int i = 0; i != 1000; ++i) {
-        pred = nn.forwardprop(data);
-        nn.backprop(label, pred);
+        pred = nn.forwardprop(data, 4, 4);
+        nn.backprop(label, pred, 4);
 
 		if ( i ==  999) {
 			print(pred, 4, 2);
