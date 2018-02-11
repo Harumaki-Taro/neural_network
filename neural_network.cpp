@@ -30,6 +30,30 @@ vector<float> label {
 };
 
 
+vector<float> W1_ {
+     0.5,  0.5,  0.5, -0.5,  0.1,  0.5,
+     0.5,  0.1, -0.5,  0.5,  0.5,  0.1,
+     0.5, -0.5,  0.1,  0.5,  0.5,  0.5,
+    -0.5,  0.5,  0.5,  0.1,  0.5,  0.5
+};
+
+vector<float> W2_ {
+	 0.1,  0.5, -0.5,
+	 0.5, -0.1,  0.5,
+	-0.5,  0.5,  0.1,
+	 0.1,  0.5, -0.5,
+	 0.5, -0.1,  0.5,
+	-0.5,  0.5,  0.1
+};
+
+
+vector<float> W3_ {
+	0.1, 0.5,
+	0.5, 0.1,
+	0.1, 0.5
+};
+
+
 //
 // プロトタイプ宣言
 //
@@ -40,13 +64,17 @@ void print(const vector<float>&, int, int);
 int main(int argc, const char * argv[]) {
 
     Neural_Network nn;
+    nn.buildFullConnectedLayer(W1_, 4, 6, sigmoid, sigmoid_d);
+    nn.buildFullConnectedLayer(W2_, 6, 3, sigmoid, sigmoid_d);
+    nn.buildFullConnectedLayer(W3_, 3, 2, sigmoid, sigmoid_d);
     vector<float> pred;
+    int epoch = 1000;
 
-	for (unsigned int i = 0; i != 1000; ++i) {
+	for (unsigned int i = 0; i != epoch; ++i) {
         pred = nn.forwardprop(data, 4, 4);
         nn.backprop(label, pred, 4);
 
-		if ( i ==  999) {
+		if ( i ==  epoch-1) {
 			print(pred, 4, 2);
 		}
 	}

@@ -20,30 +20,6 @@ typedef struct {
 } Array;
 
 
-vector<float> W1_ {
-     0.5,  0.5,  0.5, -0.5,  0.1,  0.5,
-     0.5,  0.1, -0.5,  0.5,  0.5,  0.1,
-     0.5, -0.5,  0.1,  0.5,  0.5,  0.5,
-    -0.5,  0.5,  0.5,  0.1,  0.5,  0.5
-};
-
-vector<float> W2_ {
-	 0.1,  0.5, -0.5,
-	 0.5, -0.1,  0.5,
-	-0.5,  0.5,  0.1,
-	 0.1,  0.5, -0.5,
-	 0.5, -0.1,  0.5,
-	-0.5,  0.5,  0.1
-};
-
-
-vector<float> W3_ {
-	0.1, 0.5,
-	0.5, 0.1,
-	0.1, 0.5
-};
-
-
 typedef struct {
     vector<float> W;
     int W_shape[2];
@@ -62,42 +38,39 @@ class Neural_Network {
     /*
     */
 public:
+    void buildFullConnectedLayer(vector<float>, int, int,
+                                 // vector<float>, int,
+                                 function<vector<float>(vector<float>)>,
+                                 function<vector<float>(vector<float>)>);
     vector<float> forwardprop(vector<float>, int, int);
     void backprop(vector<float>, vector<float>, int);
-    // void build_Layer(vector<float>, vector<float>, int, int, int, function<vector<float>>);
-    Neural_Network() {
-        Layer1.W = W1_;
-        Layer1.W_shape[0] = 4;
-        Layer1.W_shape[1] = 6;
-        Layer1.f = sigmoid;
-        Layer1.d_f = sigmoid_d;
-
-        Layer2.W = W2_;
-        Layer2.W_shape[0] = 6;
-        Layer2.W_shape[1] = 3;
-        Layer2.f = sigmoid;
-        Layer2.d_f = sigmoid_d;
-
-        Layer3.W = W3_;
-        Layer3.W_shape[0] = 3;
-        Layer3.W_shape[1] = 2;
-        Layer3.f = sigmoid;
-        Layer3.d_f = sigmoid_d;
-
-        Layers.push_back(Layer0);
-        Layers.push_back(Layer1);
-        Layers.push_back(Layer2);
-        Layers.push_back(Layer3);
-    };
+    Neural_Network(void);
 
 private:
     list<Layer> Layers;
-
-    Layer Layer0;
-    Layer Layer1;
-    Layer Layer2;
-    Layer Layer3;
 };
+
+
+Neural_Network::Neural_Network(void) {
+    Layer input_layer;
+    Layers.push_back(input_layer);
+}
+
+
+void Neural_Network::buildFullConnectedLayer(vector<float> W, int W_rows, int W_columns,
+                                             // vector<float> b, int b_rows,
+                                             function<vector<float>(vector<float>)> f,
+                                             function<vector<float>(vector<float>)> d_f) {
+    Layer layer;
+    layer.W = W;
+    layer.W_shape[0] = W_rows;
+    layer.W_shape[1] = W_columns;
+    // layer.b = b;
+    // layer.b_shape = b_rows;
+    layer.f = f;
+    layer.d_f = d_f;
+    Layers.push_back(layer);
+}
 
 
 vector<float> Neural_Network::forwardprop(vector<float> X, int X_rows, int X_columns) {
@@ -134,14 +107,3 @@ void Neural_Network::backprop(vector<float> y, vector<float> pred, int batch_siz
         next_layer->W = next_layer->W + next_layer->dE_dW;
     }
 }
-
-
-// void Neural_Network::build_Layer(vector<float> pre_L, vector<float> W, int pre_L_row,
-//                                         int pre_L_col, int W_col, function<vector<float>> f) {
-//     vector<float> pre_activate = dot(pre_L, W, pre_L_row, pre_L_col, W_col);
-//     vector<float> activated = f(pre_activate);
-//     forward_list.push_back(activated);
-//
-//     BackUnit backward;
-//     backward.delta = dot(W2_delta, transpoose(W2, 6, 3), 4, 3, 6) * sigmoid_d(L1);
-// }
