@@ -3,10 +3,13 @@
 #include <functional>
 #include <math.h>
 #include "my_math.h"
+#include <iostream>
 
 using std::vector;
 using std::list;
 using std::function;
+using std::cout;
+using std::endl;
 //
 // training data
 //
@@ -80,11 +83,15 @@ public:
         Layer3.W_shape[1] = 2;
         Layer3.f = sigmoid;
         Layer3.d_f = sigmoid_d;
+
+        Layers.push_back(Layer0);
+        Layers.push_back(Layer1);
+        Layers.push_back(Layer2);
+        Layers.push_back(Layer3);
     };
 
 private:
-    list<vector<float>> forward_list;
-    list<vector<float>> backward_list;
+    list<Layer> Layers;
 
     Layer Layer0;
     Layer Layer1;
@@ -92,36 +99,40 @@ private:
     Layer Layer3;
 };
 
+
 vector<float> Neural_Network::forwardprop(vector<float> X, int X_rows, int X_columns) {
-    Layer0.activated = X;
-    Layer0.W_shape[0] = X_rows;
-    Layer0.W_shape[1] = X_columns;
+    Layers.begin()->activated = X;
+    Layers.begin()->W_shape[0] = X_rows;
+    Layers.begin()->W_shape[1] = X_columns;
 
-    Layer1.pre_activate = dot(Layer0.activated, Layer1.W, Layer0.W_shape[0], Layer0.W_shape[1], Layer1.W_shape[1]);
-    Layer1.activated = Layer1.f(Layer1.pre_activate);
+    for ( auto layer = Layers.begin(); layer != --Layers.end(); ) {
+        auto prev_layer = layer;
+        ++layer;
+        layer->pre_activate = dot(prev_layer->activated, layer->W, prev_layer->W_shape[0], prev_layer->W_shape[1], layer->W_shape[1]);
+        layer->activated = layer->f(layer->pre_activate);
+    }
+    vector<float> pred = Layers.back().activated;
 
-    Layer2.pre_activate = dot(Layer1.activated, Layer2.W, Layer1.W_shape[0], Layer1.W_shape[1], Layer2.W_shape[1]);
-    Layer2.activated = Layer2.f(Layer2.pre_activate);
-
-    Layer3.pre_activate = dot(Layer2.activated, Layer3.W, Layer2.W_shape[0], Layer2.W_shape[1], Layer3.W_shape[1]);
-    Layer3.activated = Layer3.f(Layer3.pre_activate);
-
-    vector<float> predict = Layer3.activated;
-
-    return predict;
+    return pred;
 }
+
 
 void Neural_Network::backprop(vector<float> y, vector<float> pred, int batch_size) {
     vector<float> pred_error = y - pred;
-    Layer3.W_delta = pred_error * Layer3.d_f(pred);
-    Layer2.W_delta = dot(Layer3.W_delta, transpoose(Layer3.W, Layer3.W_shape[0], Layer3.W_shape[1]), batch_size, Layer3.W_shape[1], Layer3.W_shape[0]) * Layer2.d_f(Layer2.activated);
-    Layer1.W_delta = dot(Layer2.W_delta, transpoose(Layer2.W, Layer2.W_shape[0], Layer2.W_shape[1]), batch_size, Layer2.W_shape[1], Layer2.W_shape[0]) * Layer1.d_f(Layer1.activated);
-    Layer3.dE_dW = dot(transpoose(Layer2.activated, batch_size, Layer3.W_shape[0]), Layer3.W_delta, Layer3.W_shape[0], batch_size, Layer3.W_shape[1]);
-    Layer2.dE_dW = dot(transpoose(Layer1.activated, batch_size, Layer2.W_shape[0]), Layer2.W_delta, Layer2.W_shape[0], batch_size, Layer2.W_shape[1]);
-    Layer1.dE_dW = dot(transpoose(Layer0.activated, batch_size, Layer1.W_shape[0]), Layer1.W_delta, Layer1.W_shape[0], batch_size, Layer1.W_shape[1]);
-    Layer3.W = Layer3.W + Layer3.dE_dW;
-    Layer2.W = Layer2.W + Layer2.dE_dW;
-    Layer1.W = Layer1.W + Layer1.dE_dW;
+    Layers.back().W_delta = pred_error * Layers.back().d_f(pred);
+
+    for ( auto layer = Layers.rbegin(); layer != --(--Layers.rend()); ) {
+        auto next_layer = layer;
+        ++layer;
+        layer->W_delta = dot(next_layer->W_delta, transpoose(next_layer->W, next_layer->W_shape[0], next_layer->W_shape[1]), batch_size, next_layer->W_shape[1], next_layer->W_shape[0]) * layer->d_f(layer->activated);
+    }
+
+    for ( auto layer = Layers.rbegin(); layer != --Layers.rend(); ) {
+        auto next_layer = layer;
+        ++layer;
+        next_layer->dE_dW = dot(transpoose(layer->activated, batch_size, next_layer->W_shape[0]), next_layer->W_delta, next_layer->W_shape[0], batch_size, next_layer->W_shape[1]);
+        next_layer->W = next_layer->W + next_layer->dE_dW;
+    }
 }
 
 

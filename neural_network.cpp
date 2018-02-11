@@ -1,7 +1,7 @@
 //
 //  10lines_neural_network.cpp
 //
-// clang++ -std=c++11  10lines_neural_network.cpp
+// clang++ -std=c++11 neural_network.cpp
 //
 //
 
