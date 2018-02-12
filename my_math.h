@@ -1,7 +1,7 @@
 #include <iostream>
 #include <math.h>
-#include"Eigen/Core"
-#include"Eigen/Geometry"
+#include "Eigen/Core"
+#include "Eigen/Geometry"
 
 using std::cout;
 using std::endl;
@@ -35,4 +35,15 @@ MatrixXf sigmoid_d(const MatrixXf m) {
 
 MatrixXf elemntwiseProduct(const MatrixXf m1, const MatrixXf m2) {
     return (m1.array() * m2.array()).matrix();
+}
+
+
+MatrixXf uniform_rand(const int (&shape)[2], const float max, const float min) {
+    MatrixXf output = MatrixXf::Random(shape[0], shape[1]);
+    return (((output.array() / 2.f) + 0.5f) * (max - min) + min).matrix();
+}
+
+MatrixXf uniform_rand(const int shape, const float max, const float min) {
+    MatrixXf output = MatrixXf::Random(1, shape);
+    return (((output.array() / 2.f) + 0.5f) * (max - min) + min).matrix();
 }

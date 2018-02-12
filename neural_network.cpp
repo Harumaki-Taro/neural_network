@@ -1,27 +1,26 @@
 //
 //  10lines_neural_network.cpp
 //
-// clang++ -std=c++11 neural_network.cpp
+// C++
+// clang++ -std=c++14 neural_network.cpp
+// Python
+// c++ -O3 -Wall -shared -std=c++11 -undefined dynamic_lookup `python3 -m pybind11 --includes` neural_network.cpp -o neural_network`python3-config --extension-suffix`
 //
 //
 
 #include <iostream>
-#include"Eigen/Core"
 #include "neural_network.h"
+// #include <pybind11/pybind11.h>
 
 using namespace std;
-using Eigen::MatrixXf;
 
 
 //
 // プロトタイプ宣言
 //
-// void print(const vector<float>&, int, int);
 
 
-
-int main(int argc, const char * argv[]) {
-
+void example(void) {
     Eigen::MatrixXf data(4,4);
     data << 5.1, 3.5, 1.4, 0.2,	//インスタンス1
             4.9, 3.0, 1.4, 0.2,	//インスタンス2
@@ -77,15 +76,30 @@ int main(int argc, const char * argv[]) {
                                sigmoid, sigmoid_d);
     nn.allocateMemory(4);
     MatrixXf pred;
-    int epoch = 1000;
+    unsigned int epoch = 1000;
 
-	for (unsigned int i = 0; i != epoch; ++i) {
+    for (unsigned int i = 0; i != epoch; ++i) {
         pred = nn.forwardprop(data);
         nn.backprop(label, pred);
 
-		if ( i ==  epoch-1 ) {
-		 	cout << pred << endl;
-		}
-	}
+        if ( i ==  epoch-1 ) {
+            cout << pred << endl;
+        }
+    }
+}
+
+
+int main(int argc, const char * argv[]) {
+    example();
+
 	return 0;
 }
+
+
+// namespace py = pybind11;
+// PYBIND11_PLUGIN(neural_network) {
+//     py::module m("neural_network", "neural_network made by pybind11");
+//     m.def("example", &example);
+//
+//     return m.ptr();
+// }

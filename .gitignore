@@ -1,5 +1,6 @@
 memo.md
 *.out
+*.so
 .DS_Store
 /Eigen
 test.*
