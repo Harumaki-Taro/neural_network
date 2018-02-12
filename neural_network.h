@@ -21,6 +21,7 @@ typedef struct {
     int b_shape;
     MatrixXf bW;
     int bW_shape[2];
+    bool _use_bias;
     function<MatrixXf(MatrixXf)> f;
     function<MatrixXf(MatrixXf)> d_f;
     MatrixXf pre_activate;
@@ -37,18 +38,19 @@ class Neural_Network {
     */
 public:
     void build_fullConnectedLayer(MatrixXf, int, int,
-                                 MatrixXf, int,
+                                 MatrixXf, int, bool,
                                  function<MatrixXf(MatrixXf)>,
                                  function<MatrixXf(MatrixXf)>);
     // void build_softmaxLayer(void);
     void allocateMemory(int);
-    MatrixXf forwardprop(MatrixXf, int, int);
+    MatrixXf forwardprop(MatrixXf);
     void backprop(MatrixXf, MatrixXf);
     Neural_Network(void);
 
 private:
     list<Layer> Layers;
     int _batch_size;
+    int _example_size;
 };
 
 
@@ -59,7 +61,7 @@ Neural_Network::Neural_Network(void) {
 
 
 void Neural_Network::build_fullConnectedLayer(MatrixXf W, int W_rows, int W_columns,
-                                             MatrixXf b, int b_rows,
+                                             MatrixXf b, int b_rows, bool use_bias,
                                              function<MatrixXf(MatrixXf)> f,
                                              function<MatrixXf(MatrixXf)> d_f) {
     Layer layer;
@@ -70,6 +72,7 @@ void Neural_Network::build_fullConnectedLayer(MatrixXf W, int W_rows, int W_colu
     layer.b.resize(b_rows, 1);
     layer.b = b;
     layer.b_shape = b_rows;
+    layer._use_bias=use_bias;
     layer.f = f;
     layer.d_f = d_f;
     Layers.push_back(layer);
@@ -79,10 +82,20 @@ void Neural_Network::build_fullConnectedLayer(MatrixXf W, int W_rows, int W_colu
 void Neural_Network::allocateMemory(int batch_size) {
     _batch_size = batch_size;
     auto fst_layer = ++Layers.begin();
-    Layers.front().activated.resize(_batch_size, fst_layer->W_shape[0]);
-    Layers.front().activated_.resize(_batch_size, fst_layer->W_shape[0]+1);
-    Layers.front().activated_.block(0,0,_batch_size,1) = MatrixXf::Ones(_batch_size, 1);
+    _example_size = fst_layer->W_shape[0];
 
+    // input layer
+    Layers.front().activated.resize(_batch_size, _example_size);
+    Layers.front().activated_.resize(_batch_size, _example_size+1);
+    if ( Layers.front()._use_bias ) {
+        Layers.front().activated_.block(0,0,_batch_size,1) = MatrixXf::Ones(_batch_size, 1);
+    } else {
+        Layers.front().activated_.block(0,0,_batch_size,1) = MatrixXf::Zero(_batch_size, 1);
+    }
+    Layers.front().W_shape[0] = _batch_size;
+    Layers.front().W_shape[1] = fst_layer->W_shape[0];
+
+    // hidden layer
     for ( auto layer = ++Layers.begin(); layer != Layers.end(); layer++) {
         layer->pre_activate.resize(_batch_size, layer->W_shape[1]);
         layer->activated.resize(_batch_size, layer->W_shape[1]);
@@ -93,17 +106,19 @@ void Neural_Network::allocateMemory(int batch_size) {
         layer->bW.block(0,0,1,layer->W_shape[1]) = layer->b;
         layer->bW.block(1,0,layer->W_shape[0],layer->W_shape[1]) = layer->W;
         layer->activated_.resize(_batch_size, layer->W_shape[1]+1);
-        layer->activated_.block(0,0,_batch_size,1) = MatrixXf::Ones(_batch_size, 1);
+        if ( layer->_use_bias ) {
+            layer->activated_.block(0,0,_batch_size,1) = MatrixXf::Ones(_batch_size, 1);
+        } else {
+            layer->activated_.block(0,0,_batch_size,1) = MatrixXf::Zero(_batch_size, 1);
+        }
         layer->dE_dbW.resize(layer->W_shape[0]+1, layer->W_shape[1]);
     }
     Layers.back().delta.resize(_batch_size, Layers.back().W_shape[1]);
 }
 
 
-MatrixXf Neural_Network::forwardprop(MatrixXf X, int X_rows, int X_columns) {
-    Layers.front().activated_.block(0,1,_batch_size,X_columns) = X;
-    Layers.begin()->W_shape[0] = X_rows;
-    Layers.begin()->W_shape[1] = X_columns;
+MatrixXf Neural_Network::forwardprop(MatrixXf X) {
+    Layers.front().activated_.block(0,1,_batch_size,_example_size) = X;
 
     for ( auto layer = Layers.begin(); layer != --Layers.end(); ) {
         auto prev_layer = layer;
