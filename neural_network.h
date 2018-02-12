@@ -17,14 +17,18 @@ using Eigen::MatrixXf;
 typedef struct {
     MatrixXf W;
     int W_shape[2];
-    // MatrixXf b;
-    // int b_shape;
+    MatrixXf b;
+    int b_shape;
+    MatrixXf bW;
+    int bW_shape[2];
     function<MatrixXf(MatrixXf)> f;
     function<MatrixXf(MatrixXf)> d_f;
     MatrixXf pre_activate;
     MatrixXf activated;
-    MatrixXf W_delta;
+    MatrixXf activated_;
+    MatrixXf delta;
     MatrixXf dE_dW;
+    MatrixXf dE_dbW;
 }Layer;
 
 
@@ -32,17 +36,19 @@ class Neural_Network {
     /*
     */
 public:
-    void buildFullConnectedLayer(MatrixXf, int, int,
-                                 // MatrixXf, int,
+    void build_fullConnectedLayer(MatrixXf, int, int,
+                                 MatrixXf, int,
                                  function<MatrixXf(MatrixXf)>,
                                  function<MatrixXf(MatrixXf)>);
+    // void build_softmaxLayer(void);
     void allocateMemory(int);
     MatrixXf forwardprop(MatrixXf, int, int);
-    void backprop(MatrixXf, MatrixXf, int);
+    void backprop(MatrixXf, MatrixXf);
     Neural_Network(void);
 
 private:
     list<Layer> Layers;
+    int _batch_size;
 };
 
 
@@ -52,8 +58,8 @@ Neural_Network::Neural_Network(void) {
 }
 
 
-void Neural_Network::buildFullConnectedLayer(MatrixXf W, int W_rows, int W_columns,
-                                             // MatrixXf b, int b_rows,
+void Neural_Network::build_fullConnectedLayer(MatrixXf W, int W_rows, int W_columns,
+                                             MatrixXf b, int b_rows,
                                              function<MatrixXf(MatrixXf)> f,
                                              function<MatrixXf(MatrixXf)> d_f) {
     Layer layer;
@@ -61,9 +67,9 @@ void Neural_Network::buildFullConnectedLayer(MatrixXf W, int W_rows, int W_colum
     layer.W = W;
     layer.W_shape[0] = W_rows;
     layer.W_shape[1] = W_columns;
-    // layer.b.resize(b_rows, 1);
-    // layer.b = b;
-    // layer.b_shape = b_rows;
+    layer.b.resize(b_rows, 1);
+    layer.b = b;
+    layer.b_shape = b_rows;
     layer.f = f;
     layer.d_f = d_f;
     Layers.push_back(layer);
@@ -71,49 +77,60 @@ void Neural_Network::buildFullConnectedLayer(MatrixXf W, int W_rows, int W_colum
 
 
 void Neural_Network::allocateMemory(int batch_size) {
+    _batch_size = batch_size;
     auto fst_layer = ++Layers.begin();
-    Layers.front().activated.resize(batch_size, fst_layer->W_shape[0]);
+    Layers.front().activated.resize(_batch_size, fst_layer->W_shape[0]);
+    Layers.front().activated_.resize(_batch_size, fst_layer->W_shape[0]+1);
+    Layers.front().activated_.block(0,0,_batch_size,1) = MatrixXf::Ones(_batch_size, 1);
 
-    for ( auto layer = ++Layers.begin(); layer != Layers.end(); ++layer) {
-        layer->pre_activate.resize(batch_size, layer->W_shape[1]);
-        layer->activated.resize(batch_size, layer->W_shape[1]);
-        layer->W_delta.resize(batch_size, layer->W_shape[1]);
+    for ( auto layer = ++Layers.begin(); layer != Layers.end(); layer++) {
+        layer->pre_activate.resize(_batch_size, layer->W_shape[1]);
+        layer->activated.resize(_batch_size, layer->W_shape[1]);
+        layer->delta.resize(_batch_size, layer->W_shape[1]);
         layer->dE_dW.resize(layer->W_shape[0], layer->W_shape[1]);
+
+        layer->bW.resize(layer->W_shape[0]+1, layer->W_shape[1]);
+        layer->bW.block(0,0,1,layer->W_shape[1]) = layer->b;
+        layer->bW.block(1,0,layer->W_shape[0],layer->W_shape[1]) = layer->W;
+        layer->activated_.resize(_batch_size, layer->W_shape[1]+1);
+        layer->activated_.block(0,0,_batch_size,1) = MatrixXf::Ones(_batch_size, 1);
+        layer->dE_dbW.resize(layer->W_shape[0]+1, layer->W_shape[1]);
     }
+    Layers.back().delta.resize(_batch_size, Layers.back().W_shape[1]);
 }
 
 
 MatrixXf Neural_Network::forwardprop(MatrixXf X, int X_rows, int X_columns) {
-    Layers.begin()->activated = X;
+    Layers.front().activated_.block(0,1,_batch_size,X_columns) = X;
     Layers.begin()->W_shape[0] = X_rows;
     Layers.begin()->W_shape[1] = X_columns;
 
     for ( auto layer = Layers.begin(); layer != --Layers.end(); ) {
         auto prev_layer = layer;
         ++layer;
-        layer->pre_activate = prev_layer->activated * layer->W;
-        layer->activated = layer->f(layer->pre_activate);
+        layer->pre_activate = prev_layer->activated_ * layer->bW;
+        layer->activated_.block(0,1,_batch_size,layer->W_shape[1]) = layer->f(layer->pre_activate);
     }
-    MatrixXf pred = Layers.back().activated;
-
+    MatrixXf pred = Layers.back().activated_.block(0,1,_batch_size,Layers.back().W_shape[1]);
     return pred;
 }
 
 
-void Neural_Network::backprop(MatrixXf y, MatrixXf pred, int batch_size) {
+void Neural_Network::backprop(MatrixXf y, MatrixXf pred) {
     MatrixXf pred_error = y - pred;
-    Layers.back().W_delta = elemntwiseProduct(pred_error, Layers.back().d_f(pred));
+    Layers.back().delta = elemntwiseProduct(pred_error, Layers.back().d_f(pred));
 
     for ( auto layer = Layers.rbegin(); layer != --(--Layers.rend()); ) {
         auto next_layer = layer;
         ++layer;
-        layer->W_delta = elemntwiseProduct(next_layer->W_delta * next_layer->W.transpose(), layer->d_f(layer->activated));
+        layer->delta = elemntwiseProduct(next_layer->delta * next_layer->bW.block(1,0,next_layer->W_shape[0],next_layer->W_shape[1]).transpose(),
+                                         layer->d_f(layer->activated_.block(0,1,_batch_size,layer->W_shape[1])));
     }
 
     for ( auto layer = Layers.rbegin(); layer != --Layers.rend(); ) {
         auto next_layer = layer;
         ++layer;
-        next_layer->dE_dW = layer->activated.transpose() * next_layer->W_delta;
-        next_layer->W = next_layer->W + next_layer->dE_dW;
+        next_layer->dE_dbW = layer->activated_.transpose() * next_layer->delta;
+        next_layer->bW = next_layer->bW + next_layer->dE_dbW;
     }
 }
