@@ -1,4 +1,5 @@
 memo.md
 *.out
 .DS_Store
-
+/Eigen
+test.*
