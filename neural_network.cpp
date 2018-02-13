@@ -9,10 +9,15 @@
 //
 
 #include <iostream>
+#include "Eigen/Core"
+#include "my_math.h"
 #include "neural_network.h"
 // #include <pybind11/pybind11.h>
 
-using namespace std;
+using std::function;
+using std::cout;
+using std::endl;
+using Eigen::MatrixXf;
 
 
 //

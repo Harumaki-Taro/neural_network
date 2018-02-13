@@ -1,3 +1,6 @@
+#ifndef INCLUDE_my_math_h_
+#define INCLUDE_my_math_h_
+
 #include <iostream>
 #include <math.h>
 #include "Eigen/Core"
@@ -123,3 +126,5 @@ MatrixXf uniform_rand(const int shape, const float max, const float min) {
     MatrixXf output = MatrixXf::Random(1, shape);
     return (((output.array() / 2.f) + 0.5f) * (max - min) + min).matrix();
 }
+
+#endif // INCLUDE_my_math_h_
