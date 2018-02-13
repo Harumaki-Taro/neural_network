@@ -6,6 +6,7 @@
 using std::cout;
 using std::endl;
 using Eigen::MatrixXf;
+using Eigen::ArrayXXf;
 
 
 MatrixXf sigmoid(const MatrixXf m) {
@@ -30,6 +31,31 @@ MatrixXf sigmoid_d(const MatrixXf m) {
 			x(1 - x) for every element of the input matrix m1.
 	 */
      return (m.array() * (1.f - m.array())).matrix();
+}
+
+
+MatrixXf sum(const MatrixXf m, const int axis) {
+    /*
+    */
+    if ( axis == 0 ) {
+        return (m.colwise().sum()).matrix();
+    } else if ( axis == 1 ) {
+        return (m.rowwise().sum()).matrix();
+    } else {
+        cout << "sumのaxis指定が間違っています.";
+        exit(1);
+    }
+}
+
+
+MatrixXf softmax(const MatrixXf m) {
+    /*
+    */
+    ArrayXXf tmp = m.array();
+    // prevent overflow
+    tmp -= m.maxCoeff();
+    
+    return (tmp.exp() / tmp.rowwise().sum().array().exp()).matrix();
 }
 
 

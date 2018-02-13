@@ -78,7 +78,7 @@ void example(void) {
     MatrixXf pred;
     unsigned int epoch = 1000;
 
-    for (unsigned int i = 0; i != epoch; ++i) {
+    for ( unsigned int i = 0; i != epoch; ++i ) {
         pred = nn.forwardprop(data);
         nn.backprop(label, pred);
 
