@@ -74,6 +74,7 @@ void example(void) {
     nn.build_fullConnectedLayer(W3_, 3, 2,
                                b3_, 2, false,
                                sigmoid, sigmoid_d);
+    // nn.build_softmaxLayer(void);
     nn.allocateMemory(4);
     MatrixXf pred;
     unsigned int epoch = 1000;
@@ -83,7 +84,12 @@ void example(void) {
         nn.backprop(label, pred);
 
         if ( i ==  epoch-1 ) {
+            cout << "pred:" << endl;
             cout << pred << endl;
+            cout << "softmax" << endl;
+            cout << softmax(pred) << endl;
+            cout << "cross_entropy_error" << endl;
+            cout << cross_entropy_error(softmax(pred), label, false) << endl;
         }
     }
 }

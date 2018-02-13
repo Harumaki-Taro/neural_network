@@ -37,14 +37,21 @@ class Neural_Network {
     /*
     */
 public:
+    // build layers
     void build_fullConnectedLayer(MatrixXf, int, int,
                                  MatrixXf, int, bool,
                                  function<MatrixXf(MatrixXf)>,
                                  function<MatrixXf(MatrixXf)>);
     // void build_softmaxLayer(void);
+
+    // initialize for computing
     void allocateMemory(int);
+
+    // train or evaluate
     MatrixXf forwardprop(MatrixXf);
     void backprop(MatrixXf, MatrixXf);
+
+    // constructor
     Neural_Network(void);
 
 private:
@@ -77,6 +84,11 @@ void Neural_Network::build_fullConnectedLayer(MatrixXf W, int W_rows, int W_colu
     layer.d_f = d_f;
     Layers.push_back(layer);
 }
+
+
+// void Neural_Network::build_softmaxLayer(void) {
+//
+// }
 
 
 void Neural_Network::allocateMemory(int batch_size) {
