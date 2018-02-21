@@ -80,7 +80,7 @@ void example(void) {
                                b3_, 2, false,
                                sigmoid, sigmoid_d);
     // nn.build_softmaxLayer(void);
-    nn.allocateMemory(4);
+    nn.allocate_memory(4);
     MatrixXf pred;
     unsigned int epoch = 1000;
 

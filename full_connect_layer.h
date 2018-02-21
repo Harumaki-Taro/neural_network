@@ -5,6 +5,8 @@
 #include <functional>
 #include <math.h>
 #include "Eigen/Core"
+#include "my_math.h"
+#include "layer.h"
 
 using std::function;
 using std::cout;
@@ -12,47 +14,47 @@ using std::endl;
 using Eigen::MatrixXf;
 
 
-class FullConnect_Layer {
+class FullConnect_Layer : public Layer {
 public:
-    void forwardprop(MatrixXf);
-    void calc_delta(FullConnect_Layer);
-    void calc_differential(FullConnect_Layer);
+    virtual void forwardprop(MatrixXf);
+    virtual void calc_delta(MatrixXf, MatrixXf, MatrixXf);
+    virtual void calc_differential(MatrixXf);
 
-    void build_layer(MatrixXf, MatrixXf, bool,
+    virtual void build_layer(MatrixXf, MatrixXf, bool,
                      function<MatrixXf(MatrixXf)>,
                      function<MatrixXf(MatrixXf)>);
-    void allocate_memory(int, FullConnect_Layer);
-    void allocate_memory(int);
+    virtual void allocate_memory(int, bool);
+    virtual void allocate_memory(int);
     // setter
-    void set_bW(MatrixXf, MatrixXf, bool);
-    void set_activateFunction(function<MatrixXf(MatrixXf)>);
-    void set_d_activateFunction(function<MatrixXf(MatrixXf)>);
+    virtual void set_bW(MatrixXf, MatrixXf, bool);
+    virtual void set_activateFunction(function<MatrixXf(MatrixXf)>);
+    virtual void set_d_activateFunction(function<MatrixXf(MatrixXf)>);
     // getter
-    MatrixXf get_bW(void);
-    bool get_use_bias(void);
-    function<MatrixXf(MatrixXf)> get_f(void);
-    function<MatrixXf(MatrixXf)> get_d_f(void);
-    MatrixXf get_preActivate(void);
-    MatrixXf get_activated_(void);
-    MatrixXf get_delta(void);
-    MatrixXf get_dE_dbW(void);
-    int get_batch_size(void);
-    MatrixXf get_W(void);
-    MatrixXf get_b(void);
-    MatrixXf get_dE_dW(void);
-    MatrixXf get_dE_db(void);
+    virtual MatrixXf get_bW(void);
+    virtual bool get_use_bias(void);
+    virtual function<MatrixXf(MatrixXf)> get_f(void);
+    virtual function<MatrixXf(MatrixXf)> get_d_f(void);
+    virtual MatrixXf get_preActivate(void);
+    virtual MatrixXf get_activated_(void);
+    virtual MatrixXf get_delta(void);
+    virtual MatrixXf get_dE_dbW(void);
+    virtual int get_batch_size(void);
+    virtual MatrixXf get_W(void);
+    virtual MatrixXf get_b(void);
+    virtual MatrixXf get_dE_dW(void);
+    virtual MatrixXf get_dE_db(void);
 
     // 一時的な対処
-    MatrixXf activated_;
-    MatrixXf W;
-    MatrixXf delta;
-    function<MatrixXf(MatrixXf)> d_f;
-    MatrixXf bW;
-    MatrixXf dE_dbW;
+    // MatrixXf activated_;
+    // MatrixXf W;
+    // MatrixXf delta;
+    // function<MatrixXf(MatrixXf)> d_f;
+    // MatrixXf bW;
+    // MatrixXf dE_dbW;
+    // bool use_bias;
 
 private:
     // ユーザーにより初期値指定
-    bool use_bias;
     function<MatrixXf(MatrixXf)> f;
     // 計算結果の格納
     MatrixXf preActivate;
@@ -69,14 +71,14 @@ void FullConnect_Layer::forwardprop(MatrixXf X) {
 }
 
 
-void FullConnect_Layer::calc_delta(FullConnect_Layer next_layer) {
-    delta = elemntwiseProduct(next_layer.delta * next_layer.bW.block(1,0,next_layer.W.rows(),next_layer.W.cols()).transpose(),
+void FullConnect_Layer::calc_delta(MatrixXf next_delta, MatrixXf next_bW, MatrixXf next_W) {
+    delta = elemntwiseProduct(next_delta * next_bW.block(1,0,next_W.rows(),next_W.cols()).transpose(),
                                      d_f(activated_.block(0,1,batch_size,W.cols())));
 }
 
 
-void FullConnect_Layer::calc_differential(FullConnect_Layer prev_layer) {
-    dE_dbW = prev_layer.activated_.transpose() * delta;
+void FullConnect_Layer::calc_differential(MatrixXf prev_activated_) {
+    dE_dbW = prev_activated_.transpose() * delta;
 }
 
 
@@ -89,13 +91,13 @@ void FullConnect_Layer::build_layer(MatrixXf b, MatrixXf W, bool use_bias,
     }
 
 
-void FullConnect_Layer::allocate_memory(int batch_size, FullConnect_Layer next_layer) {
+void FullConnect_Layer::allocate_memory(int batch_size, bool use_bias_in_next_layer) {
     this->batch_size = batch_size;
     preActivate.resize(batch_size, W.cols());
     delta.resize(batch_size, W.cols());
 
     activated_.resize(batch_size, W.cols()+1);
-    if ( next_layer.use_bias ) {
+    if ( use_bias_in_next_layer ) {
         activated_.block(0,0,batch_size,1) = MatrixXf::Ones(batch_size, 1);
     } else {
         activated_.block(0,0,batch_size,1) = MatrixXf::Zero(batch_size, 1);
