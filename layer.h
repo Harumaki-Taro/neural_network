@@ -13,40 +13,35 @@ using Eigen::MatrixXf;
 
 class Layer {
 public:
-    virtual void forwardprop(MatrixXf) = 0;
-    virtual void calc_delta(MatrixXf, MatrixXf, MatrixXf) = 0;
-    virtual void calc_differential(MatrixXf) = 0;
+    virtual void forwardprop(MatrixXf) { cout << "使用禁止" << endl; exit(1); }
+    virtual void calc_delta(MatrixXf, MatrixXf, int, int) { cout << "使用禁止" << endl; exit(1); }
+    virtual void calc_differential(MatrixXf) { cout << "使用禁止" << endl; exit(1); }
 
     virtual void build_layer(MatrixXf, MatrixXf, bool,
                      function<MatrixXf(MatrixXf)>,
-                     function<MatrixXf(MatrixXf)>) = 0;
-    virtual void allocate_memory(int, bool) = 0;
-    virtual void allocate_memory(int) = 0;
+                     function<MatrixXf(MatrixXf)>) { cout << "使用禁止" << endl; exit(1); }
+    virtual void allocate_memory(int, int, bool) { cout << "使用禁止" << endl; exit(1); }
+    virtual void allocate_memory(int, bool) { cout << "使用禁止" << endl; exit(1); }
+    virtual void allocate_memory(int) { cout << "使用禁止" << endl; exit(1); }
     // setter
-    virtual void set_bW(MatrixXf, MatrixXf, bool) = 0;
-    virtual void set_activateFunction(function<MatrixXf(MatrixXf)>) = 0;
-    virtual void set_d_activateFunction(function<MatrixXf(MatrixXf)>) = 0;
+    virtual void set_bW(MatrixXf, MatrixXf, bool) { cout << "使用禁止" << endl; exit(1); }
     // getter
-    virtual MatrixXf get_bW(void) = 0;
-    virtual bool get_use_bias(void) = 0;
-    virtual function<MatrixXf(MatrixXf)> get_f(void) = 0;
-    virtual function<MatrixXf(MatrixXf)> get_d_f(void) = 0;
-    virtual MatrixXf get_preActivate(void) = 0;
-    virtual MatrixXf get_activated_(void) = 0;
-    virtual MatrixXf get_delta(void) = 0;
-    virtual MatrixXf get_dE_dbW(void) = 0;
-    virtual int get_batch_size(void) = 0;
-    virtual MatrixXf get_W(void) = 0;
-    virtual MatrixXf get_b(void) = 0;
-    virtual MatrixXf get_dE_dW(void) = 0;
-    virtual MatrixXf get_dE_db(void) = 0;
+    virtual MatrixXf get_bW(void) { cout << "使用禁止" << endl; exit(1); return MatrixXf::Zero(1,1); }
+    virtual bool get_use_bias(void) { cout << "使用禁止" << endl; exit(1); return false; }
+    virtual MatrixXf get_activated_(void) { cout << "使用禁止" << endl; exit(1); return MatrixXf::Zero(1,1); }
+    virtual MatrixXf get_delta(void) { cout << "使用禁止" << endl; exit(1); return MatrixXf::Zero(1,1); }
+    virtual MatrixXf get_dE_dbW(void) { cout << "使用禁止" << endl; exit(1); return MatrixXf::Zero(1,1); }
+    virtual int get_batch_size(void) { cout << "使用禁止" << endl; exit(1); return 1; }
+    virtual MatrixXf get_W(void) { cout << "使用禁止" << endl; exit(1); return MatrixXf::Zero(1,1); }
+    virtual MatrixXf get_b(void) { cout << "使用禁止" << endl; exit(1); return MatrixXf::Zero(1,1); }
 
-    // 一時的な対処
-    MatrixXf activated_;
     MatrixXf W;
+    MatrixXf bW;
+    int W_cols;
+    int W_rows;
+    MatrixXf activated_;
     MatrixXf delta;
     function<MatrixXf(MatrixXf)> d_f;
-    MatrixXf bW;
     MatrixXf dE_dbW;
     bool use_bias;
 };

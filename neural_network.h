@@ -9,6 +9,7 @@
 #include "Eigen/Core"
 #include "layer.h"
 #include "full_connect_layer.h"
+#include "input_layer.h"
 
 using std::function;
 using std::cout;
@@ -50,7 +51,7 @@ private:
 
 
 Neural_Network::Neural_Network(void) {
-    shared_ptr<Layer> input_layer( new FullConnect_Layer() );
+    shared_ptr<Layer> input_layer( new Input_Layer() );
     this->layers.push_back(input_layer);
 }
 
@@ -77,13 +78,7 @@ void Neural_Network::allocate_memory(int batch_size) {
     _example_size = (*fst_layer)->get_W().rows();
 
     // input layer
-    layers.front()->activated_.resize(_batch_size, _example_size+1);
-    if ( (*fst_layer)->get_use_bias() ) {
-        layers.front()->activated_.block(0,0,_batch_size,1) = MatrixXf::Ones(_batch_size, 1);
-    } else {
-        layers.front()->activated_.block(0,0,_batch_size,1) = MatrixXf::Zero(_batch_size, 1);
-    }
-    layers.front()->W.resize(_batch_size, (*fst_layer)->W.rows());
+    layers.front()->allocate_memory(_batch_size, _example_size, (*fst_layer)->use_bias);
 
     // hidden layer
     for ( int i = 1; i != (int)layers.size(); i++ ) {
@@ -103,7 +98,7 @@ MatrixXf Neural_Network::forwardprop(MatrixXf X) {
         layers[i]->forwardprop(layers[i-1]->get_activated_());
     }
 
-    MatrixXf pred = layers.back()->activated_.block(0,1,_batch_size,layers.back()->W.cols());
+    MatrixXf pred = layers.back()->get_activated_().block(0,1,_batch_size,layers.back()->W_cols);
     return pred;
 }
 
@@ -113,7 +108,7 @@ void Neural_Network::backprop(MatrixXf y, MatrixXf pred) {
     layers.back()->delta = elemntwiseProduct(pred_error, layers.back()->d_f(pred));
 
     for ( int i = (int)layers.size()-1; i != 1; --i ) {
-        layers[i-1]->calc_delta(layers[i]->get_delta(), layers[i]->get_bW(), layers[i]->W);
+        layers[i-1]->calc_delta(layers[i]->get_delta(), layers[i]->get_bW(), layers[i]->W_rows, layers[i]->W_cols);
     }
 
     for ( int i = (int)layers.size()-1; i != 0; --i ) {

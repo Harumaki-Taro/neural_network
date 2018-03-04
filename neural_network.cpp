@@ -71,13 +71,13 @@ void example(void) {
 
     Neural_Network nn;
     nn.build_fullConnectedLayer(W1_, 4, 6,
-                               b1_, 6, false,
+                               b1_, 6, true,
                                sigmoid, sigmoid_d);
     nn.build_fullConnectedLayer(W2_, 6, 3,
-                               b2_, 3, false,
+                               b2_, 3, true,
                                sigmoid, sigmoid_d);
     nn.build_fullConnectedLayer(W3_, 3, 2,
-                               b3_, 2, false,
+                               b3_, 2, true,
                                sigmoid, sigmoid_d);
     // nn.build_softmaxLayer(void);
     nn.allocate_memory(4);

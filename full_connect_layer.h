@@ -17,7 +17,7 @@ using Eigen::MatrixXf;
 class FullConnect_Layer : public Layer {
 public:
     virtual void forwardprop(MatrixXf);
-    virtual void calc_delta(MatrixXf, MatrixXf, MatrixXf);
+    virtual void calc_delta(MatrixXf, MatrixXf, int, int);
     virtual void calc_differential(MatrixXf);
 
     virtual void build_layer(MatrixXf, MatrixXf, bool,
@@ -27,22 +27,22 @@ public:
     virtual void allocate_memory(int);
     // setter
     virtual void set_bW(MatrixXf, MatrixXf, bool);
-    virtual void set_activateFunction(function<MatrixXf(MatrixXf)>);
-    virtual void set_d_activateFunction(function<MatrixXf(MatrixXf)>);
+    void set_activateFunction(function<MatrixXf(MatrixXf)>);
+    void set_d_activateFunction(function<MatrixXf(MatrixXf)>);
     // getter
     virtual MatrixXf get_bW(void);
     virtual bool get_use_bias(void);
-    virtual function<MatrixXf(MatrixXf)> get_f(void);
-    virtual function<MatrixXf(MatrixXf)> get_d_f(void);
-    virtual MatrixXf get_preActivate(void);
+    function<MatrixXf(MatrixXf)> get_f(void);
+    function<MatrixXf(MatrixXf)> get_d_f(void);
+    MatrixXf get_preActivate(void);
     virtual MatrixXf get_activated_(void);
     virtual MatrixXf get_delta(void);
     virtual MatrixXf get_dE_dbW(void);
     virtual int get_batch_size(void);
     virtual MatrixXf get_W(void);
     virtual MatrixXf get_b(void);
-    virtual MatrixXf get_dE_dW(void);
-    virtual MatrixXf get_dE_db(void);
+    MatrixXf get_dE_dW(void);
+    MatrixXf get_dE_db(void);
 
     // 一時的な対処
     // MatrixXf activated_;
@@ -71,9 +71,10 @@ void FullConnect_Layer::forwardprop(MatrixXf X) {
 }
 
 
-void FullConnect_Layer::calc_delta(MatrixXf next_delta, MatrixXf next_bW, MatrixXf next_W) {
-    delta = elemntwiseProduct(next_delta * next_bW.block(1,0,next_W.rows(),next_W.cols()).transpose(),
-                                     d_f(activated_.block(0,1,batch_size,W.cols())));
+void FullConnect_Layer::calc_delta(MatrixXf next_delta, MatrixXf next_bW,
+                                   int next_W_rows, int next_W_cols) {
+    delta = elemntwiseProduct(next_delta * next_bW.block(1,0,next_W_rows,next_W_cols).transpose(),
+                              d_f(activated_.block(0,1,batch_size,W_cols)));
 }
 
 
@@ -120,6 +121,8 @@ void FullConnect_Layer::allocate_memory(int batch_size) {
 void FullConnect_Layer::set_bW(MatrixXf b, MatrixXf W, bool use_bias) {
     this->W = W;
     this->b = b;
+    this->W_cols = W.cols();
+    this->W_rows = W.rows();
     this->use_bias = use_bias;
     this->bW.resize(W.rows()+1, W.cols());
     this->bW.block(0,0,1,W.cols()) = b;
