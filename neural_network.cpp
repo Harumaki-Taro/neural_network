@@ -87,14 +87,12 @@ void example(void) {
     for ( unsigned int i = 0; i != epoch; ++i ) {
         pred = nn.forwardprop(data);
         nn.backprop(label, pred);
-
-        if ( i ==  epoch-1 ) {
-            cout << "pred:" << endl;
-            cout << pred << endl;
-            cout << "cross_entropy_error" << endl;
-            cout << cross_entropy_error(softmax(pred), label, false) << endl;
-        }
     }
+
+    cout << "pred:" << endl;
+    cout << pred << endl;
+    cout << "cross_entropy_error" << endl;
+    cout << cross_entropy_error(softmax(pred), label, false) << endl;
 }
 
 
