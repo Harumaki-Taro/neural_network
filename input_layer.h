@@ -19,7 +19,10 @@ public:
     virtual int get_batch_size(void);
 
 private:
+    // Parameters specified at first
     int batch_size;
+    // 今後削除予定。
+    MatrixXf W;
 };
 
 void Input_Layer::allocate_memory(int batch_size, int example_size, bool use_bias_in_next_layer) {

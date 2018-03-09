@@ -87,12 +87,12 @@ void Neural_Network::allocate_memory(int batch_size) {
     _example_size = (*fst_layer)->get_W().rows();
 
     // input layer
-    layers.front()->allocate_memory(_batch_size, _example_size, (*fst_layer)->use_bias);
+    layers.front()->allocate_memory(_batch_size, _example_size, (*fst_layer)->get_use_bias());
 
     // hidden layer
     for ( int i = 1; i != (int)layers.size(); i++ ) {
         if ( i < (int)layers.size()-1 ) {
-            layers[i]->allocate_memory(_batch_size, layers[i+1]->use_bias);
+            layers[i]->allocate_memory(_batch_size, layers[i+1]->get_use_bias());
         } else {
             layers[i]->allocate_memory(_batch_size);
         }
@@ -116,7 +116,7 @@ void Neural_Network::backprop(MatrixXf y, MatrixXf pred) {
     layers[(int)layers.size()-2]->set_delta(layers.back()->get_delta());
 
     for ( int i = (int)layers.size()-2; i != 1; --i ) {
-        layers[i-1]->calc_delta(layers[i]->get_delta(), layers[i]->get_bW(), layers[i]->W_rows, layers[i]->W_cols);
+        layers[i-1]->calc_delta(layers[i]->get_delta(), layers[i]->get_bW(), layers[i]->get_W_rows(), layers[i]->get_W_cols());
     }
 
     for ( int i = (int)layers.size()-2; i != 0; --i ) {

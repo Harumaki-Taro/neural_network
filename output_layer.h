@@ -32,14 +32,16 @@ public:
     virtual MatrixXf get_activated_(void);
     virtual MatrixXf get_delta(void);
     int get_batch_size(void);
+    bool get_use_bias(void);
 
 private:
-    // ユーザーにより初期値指定
+    // Parameters tracked during learning
+    MatrixXf delta;
+    // Parameters specified at first
+    int batch_size;
+    int label_num;
     function<MatrixXf(MatrixXf)> f;
     function<MatrixXf(MatrixXf, MatrixXf)> delta_f;
-
-    int _batch_size;
-    int _label_num;
 };
 
 
@@ -56,17 +58,17 @@ void Output_Layer::calc_delta(MatrixXf y, MatrixXf pred) {
 void Output_Layer::build_layer(int label_num,
                                function<MatrixXf(MatrixXf)> f,
                                function<MatrixXf(MatrixXf, MatrixXf)> delta_f) {
-    this->_label_num = label_num;
+    this->label_num = label_num;
     set_activateFunction(f);
     set_deltaFunction(delta_f);
     }
 
 
 void Output_Layer::allocate_memory(int batch_size) {
-    this->_batch_size = batch_size;
-    delta.resize(this->_batch_size, this->_label_num);
+    this->batch_size = batch_size;
+    delta.resize(this->batch_size, this->label_num);
 
-    activated_.resize(this->_batch_size, this->_label_num);
+    activated_.resize(this->batch_size, this->label_num);
 }
 
 
@@ -85,6 +87,7 @@ function<MatrixXf(MatrixXf)> Output_Layer::get_f(void) { return this->f; }
 function<MatrixXf(MatrixXf, MatrixXf)> Output_Layer::get_delta_f(void) { return this->delta_f; }
 MatrixXf Output_Layer::get_activated_(void) { return this->activated_; }
 MatrixXf Output_Layer::get_delta(void) { return this->delta; }
-int Output_Layer::get_batch_size(void) { return this->_batch_size; }
+int Output_Layer::get_batch_size(void) { return this->batch_size; }
+bool Output_Layer::get_use_bias(void) { return false; }
 
 #endif // INCLUDE_output_layer_h_

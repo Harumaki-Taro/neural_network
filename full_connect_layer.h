@@ -44,31 +44,31 @@ public:
     virtual MatrixXf get_b(void);
     MatrixXf get_dE_dW(void);
     MatrixXf get_dE_db(void);
-
-    // 一時的な対処
-    // MatrixXf activated_;
-    // MatrixXf W;
-    // MatrixXf delta;
-    // function<MatrixXf(MatrixXf)> d_f;
-    // MatrixXf bW;
-    // MatrixXf dE_dbW;
-    // bool use_bias;
+    int get_W_cols(void);
+    int get_W_rows(void);
 
 private:
-    // ユーザーにより初期値指定
-    function<MatrixXf(MatrixXf)> f;
-    // 計算結果の格納
-    MatrixXf preActivate;
-
+    // Parameters tracked during learning
+    MatrixXf delta;
+    MatrixXf dE_dbW;
+    // Parameters specified at first
     int batch_size;
-
+    int W_cols;
+    int W_rows;
+    bool use_bias;
+    function<MatrixXf(MatrixXf)> f;
+    function<MatrixXf(MatrixXf)> d_f;
+    // Storage during learning
+    MatrixXf preActivate;
+    // 今後削除予定。
+    MatrixXf W;
     MatrixXf b;
 };
 
 
 void FullConnect_Layer::forwardprop(MatrixXf X) {
     preActivate = X * bW;
-    activated_.block(0,1,batch_size,preActivate.cols()) = f(preActivate);
+    this->activated_.block(0,1,batch_size,preActivate.cols()) = f(preActivate);
 }
 
 
@@ -95,27 +95,27 @@ void FullConnect_Layer::build_layer(MatrixXf b, MatrixXf W, bool use_bias,
 
 void FullConnect_Layer::allocate_memory(int batch_size, bool use_bias_in_next_layer) {
     this->batch_size = batch_size;
-    preActivate.resize(batch_size, W.cols());
-    delta.resize(batch_size, W.cols());
+    preActivate.resize(batch_size, W_cols);
+    delta.resize(batch_size, W_cols);
 
-    activated_.resize(batch_size, W.cols()+1);
+    activated_.resize(batch_size, W_cols+1);
     if ( use_bias_in_next_layer ) {
         activated_.block(0,0,batch_size,1) = MatrixXf::Ones(batch_size, 1);
     } else {
         activated_.block(0,0,batch_size,1) = MatrixXf::Zero(batch_size, 1);
     }
-    dE_dbW.resize(W.rows()+1, W.cols());
+    dE_dbW.resize(W_rows+1, W_cols);
 }
 
 
 void FullConnect_Layer::allocate_memory(int batch_size) {
     this->batch_size = batch_size;
-    preActivate.resize(batch_size, W.cols());
-    delta.resize(batch_size, W.cols());
+    preActivate.resize(batch_size, W_cols);
+    delta.resize(batch_size, W_cols);
 
-    activated_.resize(batch_size, W.cols()+1);
+    activated_.resize(batch_size, W_cols+1);
     activated_.block(0,0,batch_size,1) = MatrixXf::Zero(batch_size, 1);
-    dE_dbW.resize(W.rows()+1, W.cols());
+    dE_dbW.resize(W_rows+1, W_cols);
 }
 
 
@@ -125,9 +125,9 @@ void FullConnect_Layer::set_bW(MatrixXf b, MatrixXf W, bool use_bias) {
     this->W_cols = W.cols();
     this->W_rows = W.rows();
     this->use_bias = use_bias;
-    this->bW.resize(W.rows()+1, W.cols());
-    this->bW.block(0,0,1,W.cols()) = b;
-    this->bW.block(1,0,W.rows(),W.cols()) = W;
+    this->bW.resize(W_rows+1, W_cols);
+    this->bW.block(0,0,1,W_cols) = b;
+    this->bW.block(1,0,W_rows,W_cols) = W;
 }
 
 
@@ -151,19 +151,21 @@ MatrixXf FullConnect_Layer::get_delta(void) { return this->delta; }
 MatrixXf FullConnect_Layer::get_dE_dbW(void) { return this->dE_dbW; }
 int FullConnect_Layer::get_batch_size(void) { return this->batch_size; }
 MatrixXf FullConnect_Layer::get_W(void) {
-    this->W = this->bW.block(1,0,W.rows(),W.cols());
+    this->W = this->bW.block(1,0,W_rows,W_cols);
     return this->W;
 }
 MatrixXf FullConnect_Layer::get_b(void) {
-    this->b = this->bW.block(0,0,1,W.cols());
+    this->b = this->bW.block(0,0,1,W_cols);
     return this->b;
 }
 MatrixXf FullConnect_Layer::get_dE_dW(void) {
-    return this->dE_dbW.block(1,0,W.rows(),W.cols());
+    return this->dE_dbW.block(1,0,W_rows,W_cols);
 }
 MatrixXf FullConnect_Layer::get_dE_db(void) {
-    return this->dE_dbW.block(0,0,1,W.cols());
+    return this->dE_dbW.block(0,0,1,W_cols);
 }
+int FullConnect_Layer::get_W_cols(void) { return this->W_cols; }
+int FullConnect_Layer::get_W_rows(void) { return this->W_rows; }
 
 
 #endif // INCLUDE_full_connect_layer_h_
