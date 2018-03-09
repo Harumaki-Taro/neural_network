@@ -10,6 +10,7 @@
 #include "layer.h"
 #include "full_connect_layer.h"
 #include "input_layer.h"
+#include "output_layer.h"
 
 using std::function;
 using std::cout;
@@ -31,7 +32,9 @@ public:
                                  MatrixXf, int, bool,
                                  function<MatrixXf(MatrixXf)>,
                                  function<MatrixXf(MatrixXf)>);
-    // void build_softmaxLayer(void);
+    void build_outputLayer(int,
+                           function<MatrixXf(MatrixXf)>,
+                           function<MatrixXf(MatrixXf, MatrixXf)>);
 
     // initialize for computing
     void allocate_memory(int);
@@ -47,6 +50,7 @@ private:
     vector< shared_ptr<Layer> > layers;
     int _batch_size;
     int _example_size;
+    int _label_num;
 };
 
 
@@ -57,9 +61,9 @@ Neural_Network::Neural_Network(void) {
 
 
 void Neural_Network::build_fullConnectedLayer(MatrixXf W, int W_rows, int W_columns,
-                                             MatrixXf b, int b_rows, bool use_bias,
-                                             function<MatrixXf(MatrixXf)> f,
-                                             function<MatrixXf(MatrixXf)> d_f) {
+                                              MatrixXf b, int b_rows, bool use_bias,
+                                              function<MatrixXf(MatrixXf)> f,
+                                              function<MatrixXf(MatrixXf)> d_f) {
 
     shared_ptr<Layer> layer( new FullConnect_Layer() );
     layer->build_layer(b, W, use_bias, f, d_f);
@@ -67,9 +71,14 @@ void Neural_Network::build_fullConnectedLayer(MatrixXf W, int W_rows, int W_colu
 }
 
 
-// void Neural_Network::build_softmaxLayer(void) {
-//
-// }
+void Neural_Network::build_outputLayer(int label_num,
+                                       function<MatrixXf(MatrixXf)> f,
+                                       function<MatrixXf(MatrixXf, MatrixXf)> delta_f) {
+    this->_label_num = label_num;
+    shared_ptr<Layer> layer( new Output_Layer() );
+    layer->build_layer(this->_label_num, f, delta_f);
+    this->layers.push_back(layer);
+}
 
 
 void Neural_Network::allocate_memory(int batch_size) {
@@ -98,20 +107,19 @@ MatrixXf Neural_Network::forwardprop(MatrixXf X) {
         layers[i]->forwardprop(layers[i-1]->get_activated_());
     }
 
-    MatrixXf pred = layers.back()->get_activated_().block(0,1,_batch_size,layers.back()->W_cols);
-    return pred;
+    return layers.back()->get_activated_();
 }
 
 
 void Neural_Network::backprop(MatrixXf y, MatrixXf pred) {
-    MatrixXf pred_error = y - pred;
-    layers.back()->delta = elemntwiseProduct(pred_error, layers.back()->d_f(pred));
+    layers.back()->calc_delta(y, pred);
+    layers[(int)layers.size()-2]->set_delta(layers.back()->get_delta());
 
-    for ( int i = (int)layers.size()-1; i != 1; --i ) {
+    for ( int i = (int)layers.size()-2; i != 1; --i ) {
         layers[i-1]->calc_delta(layers[i]->get_delta(), layers[i]->get_bW(), layers[i]->W_rows, layers[i]->W_cols);
     }
 
-    for ( int i = (int)layers.size()-1; i != 0; --i ) {
+    for ( int i = (int)layers.size()-2; i != 0; --i ) {
         layers[i]->calc_differential(layers[i-1]->get_activated_());
         layers[i]->bW = layers[i]->get_bW() + layers[i]->get_dE_dbW();
     }

@@ -20,10 +20,10 @@ MatrixXf sigmoid(const MatrixXf m) {
 	/*
 		Returns the value of the sigmoid function f(x) = 1/(1 + e^-x).
 		<Inputs>
-			m1: vector
+			m: matrix
 		<Output>
-			1/(1 + e^-x) for every element of the input matrix m1.
-	 */
+			1/(1 + e^-x) for every element of the input matrix m.
+	*/
     return (1.f / (1.f + (-m.array()).exp())).matrix();
 }
 
@@ -33,11 +33,73 @@ MatrixXf sigmoid_d(const MatrixXf m) {
 		Returns the value of the sigmoid function derivative f'(x) = f(x)(1 - f(x)),
 		where f(x) is sigmoid function.
 		<Inputs>
-			m1: vector
+			m: matrix
 		<Output>
-			x(1 - x) for every element of the input matrix m1.
-	 */
-     return (m.array() * (1.f - m.array())).matrix();
+			x(1 - x) for every element of the input matrix m.
+	*/
+    return (m.array() * (1.f - m.array())).matrix();
+}
+
+
+MatrixXf identity(const MatrixXf m) {
+    /*
+        Returns the value of the identity function f(x) = x.
+        <Input>
+            m: matrix
+        <Output>
+            x for every element of the input matrix m.
+    */
+    return m;
+}
+
+
+MatrixXf identity_d(const MatrixXf m) {
+	/*
+		Returns the value of the sigmoid function derivative f'(x) = 1,
+		where f(x) is sigmoid function.
+		<Inputs>
+			m: matrix
+		<Output>
+			1 for every element of the input matrix m.
+	*/
+    return MatrixXf::Ones(m.rows(), m.cols());
+}
+
+
+MatrixXf tanh(const MatrixXf m) {
+    /*
+        Returns the value of the identity function f(x) = tanh(x).
+        <Input>
+            m: matrix
+        <Output>
+            relu(x) for every element of the input matrix m.
+    */
+    return m.array().tanh().matrix();
+}
+
+
+MatrixXf tanh_d(const MatrixXf m) {
+    /*
+        Returns the value of the tanh function f'(x) = 1 - f(x)^2.
+        <Input>
+            m: matrix
+        <Output>
+            1 - x^2 for every element of the input matrix m
+    */
+    return (1.f - pow(m.array(), 2)).matrix();
+}
+
+
+MatrixXf diff(const MatrixXf m1, const MatrixXf m2) {
+    /*
+        Returns the value of the tanh function m1 - m1.
+        <Input>
+            m1: matrix
+            m2: matrix
+        <Output>
+            m1 - m2 for every element of the input matrix m1, m2.
+    */
+    return (m1.array() - m2.array()).matrix();
 }
 
 

@@ -29,6 +29,7 @@ public:
     virtual void set_bW(MatrixXf, MatrixXf, bool);
     void set_activateFunction(function<MatrixXf(MatrixXf)>);
     void set_d_activateFunction(function<MatrixXf(MatrixXf)>);
+    virtual void set_delta(MatrixXf);
     // getter
     virtual MatrixXf get_bW(void);
     virtual bool get_use_bias(void);
@@ -136,7 +137,9 @@ void FullConnect_Layer::set_activateFunction(function<MatrixXf (MatrixXf)> f) {
 void FullConnect_Layer::set_d_activateFunction(function<MatrixXf (MatrixXf)> d_f) {
     this->d_f = d_f;
 }
-
+void FullConnect_Layer::set_delta(MatrixXf delta) {
+    this->delta = delta;
+}
 
 MatrixXf FullConnect_Layer::get_bW(void) { return this->bW; }
 bool FullConnect_Layer::get_use_bias(void) { return this->use_bias; }
