@@ -5,3 +5,5 @@ memo.md
 /Eigen
 test.*
 /.imdone
+loss.h
+train.h

@@ -53,12 +53,13 @@ public:
     int get_batch_size(void);
     int get_example_size(void);
     int get_label_num(void);
+    int get_layer_num(void);
     MatrixXf get_pred(void);
     function<float(MatrixXf, MatrixXf)> get_loss_func(void);
 
-    // TODO: setter
-    // void set_batch_size(int);
-    // void set_loss_func(function<float(MatrixXf, MatrixXf)>);
+    // setter
+    void set_batch_size(int);
+    void set_loss_func(function<float(MatrixXf, MatrixXf)>);
 
     // constructor
     Neural_Network(void);
@@ -68,6 +69,7 @@ private:
     int batch_size;
     int _example_size;
     int _label_num;
+    int _layer_num;
     MatrixXf _pred;
     function<float(MatrixXf, MatrixXf)> loss_func;
 };
@@ -94,23 +96,24 @@ void Neural_Network::build_outputLayer(int label_num,
                                        function<MatrixXf(MatrixXf)> f,
                                        string loss_name) {
     this->_label_num = label_num;
-    shared_ptr<Layer> layer( new Output_Layer() );
+    shared_ptr<Layer> output_layer( new Output_Layer() );
     if ( loss_name == "mean_square_error" ) {
-        layer->build_layer(this->_label_num, f, diff);
+        output_layer->build_layer(this->_label_num, f, diff);
         this->loss_func = mean_square_error;
     } else if ( loss_name == "mean_cross_entropy" ) {
-        layer->build_layer(this->_label_num, f, diff);
+        output_layer->build_layer(this->_label_num, f, diff);
         this->loss_func = mean_cross_entropy;
     } else {
         cout << "現在、指定の損失関数はOutput_layerクラスでは利用できません。" << endl;
         exit(1);
     }
-    this->_layers.push_back(layer);
+    this->_layers.push_back(output_layer);
 }
 
 
 void Neural_Network::allocate_memory(int batch_size) {
     this->batch_size = batch_size;
+    this->_layer_num = this->_layers.size();
     auto fst_layer = ++this->_layers.begin();
     _example_size = (*fst_layer)->get_W().rows();
 
@@ -120,35 +123,41 @@ void Neural_Network::allocate_memory(int batch_size) {
                                            (*fst_layer)->get_use_bias());
 
     // hidden layer
-    for ( int i = 1; i != (int)this->_layers.size(); i++ ) {
-        if ( i < (int)this->_layers.size()-1 ) {
-
+    for ( int i = 1; i < this->_layer_num-1; i++ ) {
+        if ( i < this->_layer_num-2 ) {
             this->_layers[i]->allocate_memory(this->batch_size,
                                               this->_layers[i+1]->get_use_bias());
         } else {
             this->_layers[i]->allocate_memory(this->batch_size);
         }
     }
+
+    // output_layer
+    this->_layers.back()->allocate_memory(this->batch_size);
 }
 
 
 MatrixXf Neural_Network::forwardprop(MatrixXf X) {
-    this->_layers.front()->activated_.block(0,1,this->batch_size,_example_size) = X;
+    // input layer
+    this->_layers.front()->_activated.block(0,1,this->batch_size,this->_example_size) = X;
 
-    for ( int i = 1; i != (int)this->_layers.size(); i++ ) {
-        this->_layers[i]->forwardprop(this->_layers[i-1]->get_activated_());
+    // hidden layer -> output layer
+    for ( int i = 1; i < this->_layer_num; i++ ) {
+        this->_layers[i]->forwardprop(this->_layers[i-1]->get_activated());
     }
-    this->_pred = this->_layers.back()->get_activated_();
+    this->_pred = this->_layers.back()->get_activated();
 
     return this->_pred;
 }
 
 
 void Neural_Network::backprop(MatrixXf pred, MatrixXf label) {
+    // output_layer
     this->_layers.back()->calc_delta(pred, label);
-    this->_layers[(int)this->_layers.size()-2]->set_delta(this->_layers.back()->get_delta());
+    this->_layers[this->_layer_num-2]->set_delta(this->_layers.back()->get_delta());
 
-    for ( int i = (int)this->_layers.size()-2; i != 1; --i ) {
+    // hidden_layer
+    for ( int i = this->_layer_num-2; i != 1; --i ) {
         this->_layers[i-1]->calc_delta(this->_layers[i]->get_delta(),
                                        this->_layers[i]->get_bW(),
                                        this->_layers[i]->get_W_rows(),
@@ -180,6 +189,9 @@ int Neural_Network::get_example_size(void) {
 int Neural_Network::get_label_num(void) {
     return this->_label_num;
 }
+int Neural_Network::get_layer_num(void) {
+    return this->_layer_num;
+}
 MatrixXf Neural_Network::get_pred(void) {
     return this->_pred;
 }
@@ -187,5 +199,17 @@ function<float(MatrixXf, MatrixXf)> Neural_Network::get_loss_func(void) {
     return this->loss_func;
 }
 
+
+void Neural_Network::set_batch_size(int batch_size) {
+    /*
+        Chane batch size and re-allocate memory.
+        <NONE>
+            All except weight and bias are initialized.
+    */
+    this->allocate_memory(batch_size);
+}
+void Neural_Network::set_loss_func(function<float(MatrixXf, MatrixXf)> loss_func) {
+    this->loss_func = loss_func;
+}
 
 #endif // INCLUDE_neural_network_h_

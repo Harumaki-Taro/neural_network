@@ -15,30 +15,40 @@ public:
     virtual void allocate_memory(int, int, bool);
 
     // getter
-    virtual MatrixXf get_activated_(void);
-    virtual int get_batch_size(void);
     virtual bool get_trainable(void);
+    virtual MatrixXf get_activated(void);
+    virtual int get_batch_size(void);
+    int get_example_size(void);
+
+    // setter
+    virtual void set_batch_size(int, bool);
 
 private:
-    bool trainable = false;
+    bool _trainable = false;
     // Parameters specified at first
     int batch_size;
-    // 今後削除予定。
-    MatrixXf W;
+    int _example_size;
 };
+
 
 void Input_Layer::allocate_memory(int batch_size, int example_size, bool use_bias_in_next_layer) {
     this->batch_size = batch_size;
-    this->activated_.resize(batch_size, example_size+1);
+    this->_example_size = example_size;
+    this->_activated.resize(this->batch_size, this->_example_size+1);
     if ( use_bias_in_next_layer ) {
-        this->activated_.block(0,0,batch_size,1) = MatrixXf::Ones(batch_size, 1);
+        this->_activated.block(0,0,this->batch_size,1) = MatrixXf::Ones(this->batch_size, 1);
     } else {
-        this->activated_.block(0,0,batch_size,1) = MatrixXf::Zero(batch_size, 1);
+        this->_activated.block(0,0,this->batch_size,1) = MatrixXf::Zero(this->batch_size, 1);
     }
-    this->W.resize(batch_size, example_size);
 }
 
 
-MatrixXf Input_Layer::get_activated_(void) { return this->activated_; }
+bool Input_Layer::get_trainable(void) { return this->_trainable; }
+MatrixXf Input_Layer::get_activated(void) { return this->_activated; }
 int Input_Layer::get_batch_size(void) { return this->batch_size; }
-bool Input_Layer::get_trainable(void) { return this->trainable; }
+int Input_Layer::get_example_size(void) { return this->_example_size; }
+
+
+void Input_Layer::set_batch_size(int batch_size, bool use_bias_in_next_layer) {
+    this->allocate_memory(batch_size, this->_example_size, use_bias_in_next_layer);
+}
