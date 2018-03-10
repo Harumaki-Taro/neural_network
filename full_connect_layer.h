@@ -28,8 +28,8 @@ public:
     virtual void build_layer(const function<MatrixXf(MatrixXf)> f,
                              const function<MatrixXf(MatrixXf)> d_f,
                              const int (&W_shape)[2], const bool use_bias=true,
-                             const float W_max=1.f, const float W_min=-1.f,
-                             const float b_max=1.f, const float b_min=-1.f);
+                             const float W_min=-1.f, const float W_max=1.f,
+                             const float b_min=-1.f, const float b_max=1.f);
     virtual void allocate_memory(int);
     virtual void allocate_memory(int, bool);
 
@@ -106,11 +106,11 @@ void FullConnect_Layer::build_layer(MatrixXf b, MatrixXf W, bool use_bias,
 void FullConnect_Layer::build_layer(const function<MatrixXf(MatrixXf)> f,
                                     const function<MatrixXf(MatrixXf)> d_f,
                                     const int (&W_shape)[2], const bool use_bias,
-                                    const float W_max, const float W_min,
-                                    const float b_max, const float b_min) {
+                                    const float W_min, const float W_max,
+                                    const float b_min, const float b_max) {
     // Define weight and bias at random.
-    MatrixXf W = uniform_rand(W_shape, W_max, W_min);
-    MatrixXf b = uniform_rand(W_shape[1], b_max, b_min);
+    MatrixXf W = uniform_rand(W_shape, W_min, W_max);
+    MatrixXf b = uniform_rand(W_shape[1], b_min, b_max);
 
     this->build_layer(b, W, use_bias,
                       f,

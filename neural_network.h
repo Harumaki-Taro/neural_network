@@ -38,8 +38,8 @@ public:
     void build_fullConnectedLayer(const function<MatrixXf(MatrixXf)> f,
                                   const function<MatrixXf(MatrixXf)> d_f,
                                   const int (&W_shape)[2], const bool use_bias,
-                                  const float W_max=1.f, const float W_min=-1.f,
-                                  const float b_max=1.f, const float b_min=-1.f);
+                                  const float W_min=-1.f, const float W_max=1.f,
+                                  const float b_min=-1.f, const float b_max=1.f);
 
     void build_outputLayer(int,
                            function<MatrixXf(MatrixXf)>,
@@ -101,11 +101,11 @@ void Neural_Network::build_fullConnectedLayer(MatrixXf W, int W_rows, int W_colu
 void Neural_Network::build_fullConnectedLayer(const function<MatrixXf(MatrixXf)> f,
                                               const function<MatrixXf(MatrixXf)> d_f,
                                               const int (&W_shape)[2], const bool use_bias,
-                                              const float W_max, const float W_min,
-                                              const float b_max, const float b_min) {
+                                              const float W_min, const float W_max,
+                                              const float b_min, const float b_max) {
 
     shared_ptr<Layer> layer( new FullConnect_Layer() );
-    layer->build_layer(f, d_f, W_shape, use_bias, W_max, W_min, b_max, b_min);
+    layer->build_layer(f, d_f, W_shape, use_bias, W_min, W_max, b_min, b_max);
     this->_layers.push_back(layer);
 }
 

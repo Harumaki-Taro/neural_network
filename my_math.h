@@ -193,13 +193,21 @@ MatrixXf elemntwiseProduct(const MatrixXf m1, const MatrixXf m2) {
 }
 
 
-MatrixXf uniform_rand(const int (&shape)[2], const float max, const float min) {
+MatrixXf uniform_rand(const int (&shape)[2], const float min, const float max) {
+    if ( max - min <= 0.f ) {
+        cout << "minよりmaxの方が小さいです" << endl;
+        exit(1);
+    }
     MatrixXf output = MatrixXf::Random(shape[0], shape[1]);
     return (((output.array() / 2.f) + 0.5f) * (max - min) + min).matrix();
 }
 
 
-MatrixXf uniform_rand(const int shape, const float max, const float min) {
+MatrixXf uniform_rand(const int shape, const float min, const float max) {
+    if ( max - min <= 0.f ) {
+        cout << "minよりmaxの方が小さいです" << endl;
+        exit(1);
+    }
     MatrixXf output = MatrixXf::Random(1, shape);
     return (((output.array() / 2.f) + 0.5f) * (max - min) + min).matrix();
 }
