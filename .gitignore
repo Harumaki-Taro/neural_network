@@ -7,3 +7,4 @@ test.*
 /.imdone
 loss.h
 train.h
+convolutional_layer.h

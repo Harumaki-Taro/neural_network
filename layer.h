@@ -21,6 +21,11 @@ public:
     virtual void build_layer(MatrixXf, MatrixXf, bool,
                              function<MatrixXf(MatrixXf)>,
                              function<MatrixXf(MatrixXf)>) { cout << "使用禁止e" << endl; exit(1); }
+    virtual void build_layer(const function<MatrixXf(MatrixXf)> f,
+                             const function<MatrixXf(MatrixXf)> d_f,
+                             const int (&W_shape)[2], const bool use_bias=true,
+                             const float W_max=1.f, const float W_min=-1.f,
+                             const float b_max=1.f, const float b_min=-1.f) { cout << "使用禁止e2" << endl; exit(1); }
     virtual void build_layer(int,
                              function<MatrixXf(MatrixXf)>,
                              function<MatrixXf(MatrixXf, MatrixXf)>) { cout << "使用禁止f" << endl; exit(1); }

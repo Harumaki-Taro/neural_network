@@ -198,6 +198,7 @@ MatrixXf uniform_rand(const int (&shape)[2], const float max, const float min) {
     return (((output.array() / 2.f) + 0.5f) * (max - min) + min).matrix();
 }
 
+
 MatrixXf uniform_rand(const int shape, const float max, const float min) {
     MatrixXf output = MatrixXf::Random(1, shape);
     return (((output.array() / 2.f) + 0.5f) * (max - min) + min).matrix();

@@ -42,45 +42,14 @@ void example(void) {
         //     0, 1,
              0, 1;
 
-    MatrixXf W1_(4, 6);
-    W1_ <<  0.5,  0.5,  0.5, -0.5,  0.1,  0.5,
-            0.5,  0.1, -0.5,  0.5,  0.5,  0.1,
-            0.5, -0.5,  0.1,  0.5,  0.5,  0.5,
-           -0.5,  0.5,  0.5,  0.1,  0.5,  0.5;
-
-    MatrixXf b1_(1, 6);
-    b1_ <<  0.0,  0.0,  0.0,  0.0,  0.0,  0.0;
-
-    MatrixXf W2_(6, 3);
-    W2_ <<  0.1,  0.5, -0.5,
-            0.5, -0.1,  0.5,
-           -0.5,  0.5,  0.1,
-            0.1,  0.5, -0.5,
-            0.5, -0.1,  0.5,
-           -0.5,  0.5,  0.1;
-
-    MatrixXf b2_(1, 3);
-    b2_ <<  0.0,  0.0,  0.0;
-
-    MatrixXf W3_(3, 2);
-    W3_ <<  0.1,  0.5,
-            0.5,  0.1,
-            0.1,  0.5;
-
-    MatrixXf b3_(1, 2);
-    b3_ <<  0.0,  0.0;
-
     // Build a neural network archtecture.
     Neural_Network nn;
-    nn.build_fullConnectedLayer(W1_, 4, 6,
-                               b1_, 6, true,
-                               sigmoid, sigmoid_d);
-    nn.build_fullConnectedLayer(W2_, 6, 3,
-                               b2_, 3, true,
-                               sigmoid, sigmoid_d);
-    nn.build_fullConnectedLayer(W3_, 3, 2,
-                               b3_, 2, true,
-                               identity, identity_d);
+    int W1_shape[2] = { 4, 6 };
+    nn.build_fullConnectedLayer(sigmoid, sigmoid_d, W1_shape, true);
+    int W2_shape[2] = { 6, 3 };
+    nn.build_fullConnectedLayer(sigmoid, sigmoid_d, W2_shape, true);
+    int W3_shape[2] = { 3, 2 };
+    nn.build_fullConnectedLayer(identity, identity_d, W3_shape, true);
     nn.build_outputLayer(2, softmax, "mean_cross_entropy");
     nn.allocate_memory(4);
 
@@ -119,6 +88,7 @@ void example(void) {
 
 
 int main(int argc, const char * argv[]) {
+    std::srand((unsigned int) time(0));
     example();
 
 	return 0;
