@@ -81,7 +81,7 @@ void example(void) {
     nn.build_fullConnectedLayer(W3_, 3, 2,
                                b3_, 2, true,
                                identity, identity_d);
-    nn.build_outputLayer(2, softmax, diff);
+    nn.build_outputLayer(2, softmax, "mean_cross_entropy");
     nn.allocate_memory(4);
 
     // Define loss function and optimizer.
@@ -105,15 +105,16 @@ void example(void) {
 
         for ( int i = 0; i != (int)nn.get_layers().size(); i++ ) {
             if ( nn.get_layers()[i]->get_trainable() ) {
+                nn.get_layers()[i]->calc_differential(nn.get_layers()[i-1]->get_activated_());
                 nn.get_layers()[i]->bW = nn.get_layers()[i]->get_bW() - (eps * nn.get_layers()[i]->dE_dbW.array()).matrix();
             }
         }
     }
 
     cout << "pred:" << endl;
-    cout << pred << endl;
+    cout << nn.get_pred() << endl;
     cout << "cross_entropy_error" << endl;
-    cout << cross_entropy_error(softmax(pred), label, false) << endl;
+    cout << nn.calc_loss_with_prev_pred(label) << endl;
 }
 
 

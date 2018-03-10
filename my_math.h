@@ -147,7 +147,7 @@ float mean_square_error(const MatrixXf y, const MatrixXf t) {
 }
 
 
-float cross_entropy_error(const MatrixXf y, const MatrixXf t, const bool one_of_k) {
+float mean_cross_entropy(const MatrixXf y, const MatrixXf t) {
     /*
         Returns the value of the cross entropy error between prediction y and teacher t.
         <Inputs>
@@ -160,17 +160,31 @@ float cross_entropy_error(const MatrixXf y, const MatrixXf t, const bool one_of_
     */
     float batch_size = (float)t.rows();
 
-    if ( one_of_k ) {
-        MatrixXf output(y.rows(), 1);
-        MatrixXf::Index max_index;
-        for ( int i = 0; i < t.rows(); i++ ) {
-            t.row(i).maxCoeff(&max_index);
-            output(i,0) = log(y(i,max_index)+1e-7);
-        }
-        return - output.sum() / batch_size;
-    } else {
-        return - (t.array() * (y.array()+1e-7).log()).sum() / batch_size;
+    return - (t.array() * (y.array()+1e-7).log()).sum() / batch_size;
+}
+
+
+float mean_cross_entropy_one_of_k(const MatrixXf y, const MatrixXf t) {
+    /*
+        Returns the value of the cross entropy error between prediction y and teacher t.
+        <Inputs>
+            y: MatrixXf, prediction
+            t: MatrixXf, teacher
+        <Output>
+            - sum(t * log(y)) for all element of the input matrix.
+        <Note>
+            - Add 1e-7 to prevent log from divergence.
+    */
+    float batch_size = (float)t.rows();
+
+    MatrixXf output(y.rows(), 1);
+    MatrixXf::Index max_index;
+    for ( int i = 0; i < t.rows(); i++ ) {
+        t.row(i).maxCoeff(&max_index);
+        output(i,0) = log(y(i,max_index)+1e-7);
     }
+
+    return - output.sum() / batch_size;
 }
 
 
