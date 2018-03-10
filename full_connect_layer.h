@@ -4,6 +4,7 @@
 #include <iostream>
 #include <functional>
 #include <math.h>
+#include <boost/shared_ptr.hpp>
 #include "Eigen/Core"
 #include "my_math.h"
 #include "layer.h"
@@ -12,6 +13,7 @@ using std::function;
 using std::cout;
 using std::endl;
 using Eigen::MatrixXf;
+using std::shared_ptr;
 
 
 class FullConnect_Layer : public Layer {
@@ -46,11 +48,12 @@ public:
     MatrixXf get_dE_db(void);
     int get_W_cols(void);
     int get_W_rows(void);
+    virtual bool get_trainable(void);
 
 private:
+    bool trainable = true;
     // Parameters tracked during learning
     MatrixXf delta;
-    MatrixXf dE_dbW;
     // Parameters specified at first
     int batch_size;
     int W_cols;
@@ -105,6 +108,7 @@ void FullConnect_Layer::allocate_memory(int batch_size, bool use_bias_in_next_la
         activated_.block(0,0,batch_size,1) = MatrixXf::Zero(batch_size, 1);
     }
     dE_dbW.resize(W_rows+1, W_cols);
+    shared_ptr<MatrixXf> dE_dbW_ptr(new MatrixXf(this->dE_dbW));
 }
 
 
@@ -116,6 +120,7 @@ void FullConnect_Layer::allocate_memory(int batch_size) {
     activated_.resize(batch_size, W_cols+1);
     activated_.block(0,0,batch_size,1) = MatrixXf::Zero(batch_size, 1);
     dE_dbW.resize(W_rows+1, W_cols);
+    shared_ptr<MatrixXf> dE_dbW_ptr(new MatrixXf(this->dE_dbW));
 }
 
 
@@ -166,6 +171,8 @@ MatrixXf FullConnect_Layer::get_dE_db(void) {
 }
 int FullConnect_Layer::get_W_cols(void) { return this->W_cols; }
 int FullConnect_Layer::get_W_rows(void) { return this->W_rows; }
+bool FullConnect_Layer::get_trainable(void) { return this->trainable; }
+// shared_ptr<MatrixXf> FullConnect_Layer::get_dE_dbW_ptr(void) { return this->dE_dbW_ptr; }
 
 
 #endif // INCLUDE_full_connect_layer_h_

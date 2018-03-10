@@ -33,8 +33,10 @@ public:
     virtual MatrixXf get_delta(void);
     int get_batch_size(void);
     bool get_use_bias(void);
+    virtual bool get_trainable(void);
 
 private:
+    bool trainable = false;
     // Parameters tracked during learning
     MatrixXf delta;
     // Parameters specified at first
@@ -89,5 +91,6 @@ MatrixXf Output_Layer::get_activated_(void) { return this->activated_; }
 MatrixXf Output_Layer::get_delta(void) { return this->delta; }
 int Output_Layer::get_batch_size(void) { return this->batch_size; }
 bool Output_Layer::get_use_bias(void) { return false; }
+bool Output_Layer::get_trainable(void) { return this->trainable; }
 
 #endif // INCLUDE_output_layer_h_

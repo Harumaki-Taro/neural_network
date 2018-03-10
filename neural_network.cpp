@@ -12,6 +12,8 @@
 #include "Eigen/Core"
 #include "my_math.h"
 #include "neural_network.h"
+// #include "loss.h"
+// #include "train.h"
 // #include <pybind11/pybind11.h>
 
 using std::function;
@@ -68,7 +70,7 @@ void example(void) {
     MatrixXf b3_(1, 2);
     b3_ <<  0.0,  0.0;
 
-
+    // Build a neural network archtecture.
     Neural_Network nn;
     nn.build_fullConnectedLayer(W1_, 4, 6,
                                b1_, 6, true,
@@ -81,12 +83,31 @@ void example(void) {
                                identity, identity_d);
     nn.build_outputLayer(2, softmax, diff);
     nn.allocate_memory(4);
+
+    // Define loss function and optimizer.
+    // Loss loss;
+    // loss.add_crossEntropy();
+    // // loss.add_LpNorm(2);
+    // Train train(nn, loss);
+
+    // Initialize the neural network and training environment.
+    // train.build_updateTerms();
+
+    // Define learning parameters.
     MatrixXf pred;
     unsigned int epoch = 1000;
+    float eps = 1.f;
 
     for ( unsigned int i = 0; i != epoch; ++i ) {
+        // train.update(data, label);
         pred = nn.forwardprop(data);
-        nn.backprop(label, pred);
+        nn.backprop(pred, label);
+
+        for ( int i = 0; i != (int)nn.get_layers().size(); i++ ) {
+            if ( nn.get_layers()[i]->get_trainable() ) {
+                nn.get_layers()[i]->bW = nn.get_layers()[i]->get_bW() - (eps * nn.get_layers()[i]->dE_dbW.array()).matrix();
+            }
+        }
     }
 
     cout << "pred:" << endl;

@@ -17,8 +17,10 @@ public:
     // getter
     virtual MatrixXf get_activated_(void);
     virtual int get_batch_size(void);
+    virtual bool get_trainable(void);
 
 private:
+    bool trainable = false;
     // Parameters specified at first
     int batch_size;
     // 今後削除予定。
@@ -39,3 +41,4 @@ void Input_Layer::allocate_memory(int batch_size, int example_size, bool use_bia
 
 MatrixXf Input_Layer::get_activated_(void) { return this->activated_; }
 int Input_Layer::get_batch_size(void) { return this->batch_size; }
+bool Input_Layer::get_trainable(void) { return this->trainable; }

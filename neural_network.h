@@ -43,6 +43,9 @@ public:
     MatrixXf forwardprop(MatrixXf);
     void backprop(MatrixXf, MatrixXf);
 
+    // getter
+    vector< shared_ptr<Layer> > get_layers(void);
+
     // constructor
     Neural_Network(void);
 
@@ -92,6 +95,7 @@ void Neural_Network::allocate_memory(int batch_size) {
     // hidden layer
     for ( int i = 1; i != (int)layers.size(); i++ ) {
         if ( i < (int)layers.size()-1 ) {
+
             layers[i]->allocate_memory(_batch_size, layers[i+1]->get_use_bias());
         } else {
             layers[i]->allocate_memory(_batch_size);
@@ -111,8 +115,8 @@ MatrixXf Neural_Network::forwardprop(MatrixXf X) {
 }
 
 
-void Neural_Network::backprop(MatrixXf y, MatrixXf pred) {
-    layers.back()->calc_delta(y, pred);
+void Neural_Network::backprop(MatrixXf pred, MatrixXf label) {
+    layers.back()->calc_delta(pred, label);
     layers[(int)layers.size()-2]->set_delta(layers.back()->get_delta());
 
     for ( int i = (int)layers.size()-2; i != 1; --i ) {
@@ -121,8 +125,12 @@ void Neural_Network::backprop(MatrixXf y, MatrixXf pred) {
 
     for ( int i = (int)layers.size()-2; i != 0; --i ) {
         layers[i]->calc_differential(layers[i-1]->get_activated_());
-        layers[i]->bW = layers[i]->get_bW() + layers[i]->get_dE_dbW();
     }
+}
+
+
+vector< shared_ptr<Layer> > Neural_Network::get_layers(void) {
+    return this->layers;
 }
 
 

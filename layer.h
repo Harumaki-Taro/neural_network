@@ -40,8 +40,10 @@ public:
     virtual MatrixXf get_b(void) { cout << "使用禁止s" << endl; exit(1); return MatrixXf::Zero(1,1); }
     virtual int get_W_cols(void) { cout << "使用禁止t" << endl; exit(1); return 1; }
     virtual int get_W_rows(void) { cout << "使用禁止u" << endl; exit(1); return 1; }
+    virtual bool get_trainable(void) { cout << "使用禁止v" << endl; exit(1); return 1; }
 
     // 子クラスのprivateへ移行予定
+    MatrixXf dE_dbW;
     MatrixXf bW;
     MatrixXf activated_;
 };
