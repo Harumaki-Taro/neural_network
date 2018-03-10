@@ -75,7 +75,9 @@ void example(void) {
         for ( int i = 0; i != (int)nn.get_layers().size(); i++ ) {
             if ( nn.get_layers()[i]->get_trainable() ) {
                 nn.get_layers()[i]->calc_differential(nn.get_layers()[i-1]->get_activated());
-                nn.get_layers()[i]->bW = nn.get_layers()[i]->get_bW() - (eps * nn.get_layers()[i]->_dE_dbW.array()).matrix();
+                nn.get_layers()[i]->bW
+                    = nn.get_layers()[i]->get_bW()
+                      - (eps * nn.get_layers()[i]->_dE_dbW.array()).matrix();
             }
         }
     }

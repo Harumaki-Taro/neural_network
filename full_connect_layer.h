@@ -18,20 +18,22 @@ using std::shared_ptr;
 
 class FullConnect_Layer : public Layer {
 public:
-    virtual void forwardprop(MatrixXf);
-    virtual void calc_delta(MatrixXf, MatrixXf, int, int);
-    virtual void calc_differential(MatrixXf);
+    virtual void forwardprop(const MatrixXf X);
+    virtual void calc_delta(const MatrixXf next_delta, const MatrixXf next_bW,
+                            const int nextW_rows, const int next_W_cols);
+    virtual void calc_differential(const MatrixXf prev_activated);
 
-    virtual void build_layer(MatrixXf, MatrixXf, bool,
-                     function<MatrixXf(MatrixXf)>,
-                     function<MatrixXf(MatrixXf)>);
+    virtual void build_layer(const function<MatrixXf(MatrixXf)> f,
+                             const function<MatrixXf(MatrixXf)> d_f,
+                             const MatrixXf W, const MatrixXf b,
+                             const bool use_bias);
     virtual void build_layer(const function<MatrixXf(MatrixXf)> f,
                              const function<MatrixXf(MatrixXf)> d_f,
                              const int (&W_shape)[2], const bool use_bias=true,
                              const float W_min=-1.f, const float W_max=1.f,
                              const float b_min=-1.f, const float b_max=1.f);
-    virtual void allocate_memory(int);
-    virtual void allocate_memory(int, bool);
+    virtual void allocate_memory(const int batch_size);
+    virtual void allocate_memory(const int batch_size, const bool use_bias_in_next_layer);
 
     // getter
     virtual bool get_trainable(void);
@@ -52,13 +54,13 @@ public:
     MatrixXf get_dE_db(void);
 
     // setter
-    virtual void set_batch_size(int, bool);
-    virtual void set_bW(MatrixXf, MatrixXf, bool);
+    virtual void set_batch_size(const int batch_size, const bool use_bias);
+    virtual void set_bW(const MatrixXf W, const MatrixXf b, const bool use_bias);
     // virtual void set_W(MatrixXf);
     // virtual void set_b(MatrixXf);
-    virtual void set_delta(MatrixXf);
-    virtual void set_activateFunction(function<MatrixXf(MatrixXf)>);
-    virtual void set_d_activateFunction(function<MatrixXf(MatrixXf)>);
+    virtual void set_delta(const MatrixXf delta);
+    virtual void set_activateFunction(const function<MatrixXf(MatrixXf)> f);
+    virtual void set_d_activateFunction(const function<MatrixXf(MatrixXf)> d_f);
 
 private:
     bool trainable = true;
@@ -76,28 +78,29 @@ private:
 };
 
 
-void FullConnect_Layer::forwardprop(MatrixXf X) {
+void FullConnect_Layer::forwardprop(const MatrixXf X) {
     this->_preActivate = X * bW;
     this->_activated.block(0,1,this->batch_size,this->_preActivate.cols()) = f(this->_preActivate);
 }
 
 
-void FullConnect_Layer::calc_delta(MatrixXf next_delta, MatrixXf next_bW,
-                                   int next_W_rows, int next_W_cols) {
+void FullConnect_Layer::calc_delta(const MatrixXf next_delta, const MatrixXf next_bW,
+                                   const int next_W_rows, const int next_W_cols) {
     this->delta = elemntwiseProduct(next_delta * next_bW.block(1,0,next_W_rows,next_W_cols).transpose(),
                                     d_f(this->_activated.block(0,1,this->batch_size,_W_cols)));
 }
 
 
-void FullConnect_Layer::calc_differential(MatrixXf prev_activated_) {
-    this->_dE_dbW = prev_activated_.transpose() * this->delta;
+void FullConnect_Layer::calc_differential(const MatrixXf prev_activated) {
+    this->_dE_dbW = prev_activated.transpose() * this->delta;
 }
 
 
-void FullConnect_Layer::build_layer(MatrixXf b, MatrixXf W, bool use_bias,
-                                    function<MatrixXf(MatrixXf)> f,
-                                    function<MatrixXf(MatrixXf)> d_f) {
-    set_bW(b, W, use_bias);
+void FullConnect_Layer::build_layer(const function<MatrixXf(MatrixXf)> f,
+                                    const function<MatrixXf(MatrixXf)> d_f,
+                                    const MatrixXf W, const MatrixXf b,
+                                    const bool use_bias) {
+    set_bW(W, b, use_bias);
     set_activateFunction(f);
     set_d_activateFunction(d_f);
 }
@@ -112,13 +115,13 @@ void FullConnect_Layer::build_layer(const function<MatrixXf(MatrixXf)> f,
     MatrixXf W = uniform_rand(W_shape, W_min, W_max);
     MatrixXf b = uniform_rand(W_shape[1], b_min, b_max);
 
-    this->build_layer(b, W, use_bias,
-                      f,
-                      d_f);
+    this->build_layer(f,
+                      d_f,
+                      W, b, use_bias);
 }
 
 
-void FullConnect_Layer::allocate_memory(int batch_size) {
+void FullConnect_Layer::allocate_memory(const int batch_size) {
     this->batch_size = batch_size;
     this->_preActivate.resize(this->batch_size, this->_W_cols);
     this->delta.resize(this->batch_size, this->_W_cols);
@@ -129,7 +132,7 @@ void FullConnect_Layer::allocate_memory(int batch_size) {
 }
 
 
-void FullConnect_Layer::allocate_memory(int batch_size, bool use_bias_in_next_layer) {
+void FullConnect_Layer::allocate_memory(const int batch_size, const bool use_bias_in_next_layer) {
     this->batch_size = batch_size;
     this->_preActivate.resize(this->batch_size, this->_W_cols);
     this->delta.resize(this->batch_size, this->_W_cols);
@@ -172,10 +175,10 @@ MatrixXf FullConnect_Layer::get_dE_db(void) {
     return this->_dE_dbW.block(0,0,1,this->_W_cols);
 }
 
-void FullConnect_Layer::set_batch_size(int batch_size, bool use_bias_in_next_layer) {
+void FullConnect_Layer::set_batch_size(const int batch_size, const bool use_bias_in_next_layer) {
     this->allocate_memory(batch_size, use_bias_in_next_layer);
 }
-void FullConnect_Layer::set_bW(MatrixXf b, MatrixXf W, bool use_bias) {
+void FullConnect_Layer::set_bW(const MatrixXf W, const MatrixXf b, const bool use_bias) {
     this->_W_cols = W.cols();
     this->_W_rows = W.rows();
     this->use_bias = use_bias;
@@ -183,13 +186,13 @@ void FullConnect_Layer::set_bW(MatrixXf b, MatrixXf W, bool use_bias) {
     this->bW.block(0,0,1,this->_W_cols) = b;
     this->bW.block(1,0,this->_W_rows,this->_W_cols) = W;
 }
-void FullConnect_Layer::set_delta(MatrixXf delta) {
+void FullConnect_Layer::set_delta(const MatrixXf delta) {
     this->delta = delta;
 }
-void FullConnect_Layer::set_activateFunction(function<MatrixXf (MatrixXf)> f) {
+void FullConnect_Layer::set_activateFunction(const function<MatrixXf (MatrixXf)> f) {
     this->f = f;
 }
-void FullConnect_Layer::set_d_activateFunction(function<MatrixXf (MatrixXf)> d_f) {
+void FullConnect_Layer::set_d_activateFunction(const function<MatrixXf (MatrixXf)> d_f) {
     this->d_f = d_f;
 }
 

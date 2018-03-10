@@ -12,7 +12,9 @@ using Eigen::MatrixXf;
 
 class Input_Layer : public Layer {
 public:
-    virtual void allocate_memory(int, int, bool);
+    virtual void allocate_memory(const int batch_size,
+                                 const int example_size,
+                                 const bool use_bias);
 
     // getter
     virtual bool get_trainable(void);
@@ -21,7 +23,8 @@ public:
     int get_example_size(void);
 
     // setter
-    virtual void set_batch_size(int, bool);
+    virtual void set_batch_size(const int batch_size,
+                                const bool use_bias_in_next_layer);
 
 private:
     bool _trainable = false;
@@ -31,7 +34,7 @@ private:
 };
 
 
-void Input_Layer::allocate_memory(int batch_size, int example_size, bool use_bias_in_next_layer) {
+void Input_Layer::allocate_memory(const int batch_size, const int example_size, const bool use_bias_in_next_layer) {
     this->batch_size = batch_size;
     this->_example_size = example_size;
     this->_activated.resize(this->batch_size, this->_example_size+1);
@@ -49,6 +52,6 @@ int Input_Layer::get_batch_size(void) { return this->batch_size; }
 int Input_Layer::get_example_size(void) { return this->_example_size; }
 
 
-void Input_Layer::set_batch_size(int batch_size, bool use_bias_in_next_layer) {
+void Input_Layer::set_batch_size(const int batch_size, const bool use_bias_in_next_layer) {
     this->allocate_memory(batch_size, this->_example_size, use_bias_in_next_layer);
 }
