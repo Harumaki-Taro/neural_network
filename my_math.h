@@ -66,7 +66,7 @@ MatrixXf identity_d(const MatrixXf m) {
 }
 
 
-MatrixXf tanh(const MatrixXf m) {
+MatrixXf tanh_(const MatrixXf m) {
     /*
         Returns the value of the identity function f(x) = tanh(x).
         <Input>

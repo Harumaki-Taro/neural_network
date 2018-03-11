@@ -30,8 +30,8 @@ public:
     virtual void build_layer(const function<MatrixXf(MatrixXf)> f,
                              const function<MatrixXf(MatrixXf)> d_f,
                              const int (&W_shape)[2], const bool use_bias=true,
-                             const float W_min=-1.f, const float W_max=1.f,
-                             const float b_min=-1.f, const float b_max=1.f);
+                             const float W_min=-0.01, const float W_max=0.01,
+                             const float b_min=-0.01, const float b_max=0.01);
     virtual void allocate_memory(const int batch_size);
     virtual void allocate_memory(const int batch_size, const bool use_bias_in_next_layer);
 
