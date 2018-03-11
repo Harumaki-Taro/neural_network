@@ -2,14 +2,17 @@
 //  10lines_neural_network.cpp
 //
 // C++
-// clang++ -std=c++14 neural_network.cpp
+// clang-omp++ -O3 -std=c++14 -fopenmp neural_network.cpp
 // Python
 // c++ -O3 -Wall -shared -std=c++11 -undefined dynamic_lookup `python3 -m pybind11 --includes` neural_network.cpp -o neural_network`python3-config --extension-suffix`
 //
 //
 
 #include <iostream>
+#include <chrono>
+// #include <omp.h>
 #include "Eigen/Core"
+#include "openmp.h"
 #include "my_math.h"
 #include "neural_network.h"
 // #include "loss.h"
@@ -59,6 +62,8 @@ void example(void) {
     // train.build_updateTerms();
 
     for ( unsigned int i = 0; i < epoch; i++ ) {
+        std::chrono::system_clock::time_point  start, end;
+        start = std::chrono::system_clock::now(); // 計測開始時間
         // train.update(data, label);
         Mini_Batch mini_batch = mnist._train.randomPop(mini_batch_size);
         pred = nn.forwardprop(mini_batch.example);
@@ -97,10 +102,12 @@ void example(void) {
                 // }
             }
         }
+        end = std::chrono::system_clock::now();  // 計測終了時間
 
         if ( i % 10 == 0 ) {
+            double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count(); //処理に要した時間をミリ秒に変換
             cout << i << endl;
-            cout << "loss: " << nn.calc_loss_with_prev_pred(mini_batch.label) << endl;
+            cout << "loss: " << nn.calc_loss_with_prev_pred(mini_batch.label) << "\t(time: " << elapsed << "msec)" << endl;
         }
 
         if ( i + 1 == epoch ) {
@@ -111,6 +118,12 @@ void example(void) {
 
 
 int main(int argc, const char * argv[]) {
+    // // openMP
+    // int n = Eigen::nbThreads( );
+    // omp_set_num_threads(n-2);
+    // Eigen::setNbThreads(n-2);
+    use_openmp();
+
     std::srand((unsigned int) time(0));
     example();
 
