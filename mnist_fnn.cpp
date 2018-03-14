@@ -37,7 +37,7 @@ int main(void) {
 
     // Define learning parameters.
     MatrixXf pred;
-    float eps = 0.01;
+    float eps = 0.03;
     unsigned int mini_batch_size = 100;
     unsigned int epoch = 10000;
 

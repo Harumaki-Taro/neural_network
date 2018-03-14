@@ -100,12 +100,8 @@ void FullConnect_Layer::calc_differential(const vector<vector <MatrixXf> > prev_
     this->_dE_dbW[0][0].block(1, 0, this->_W_rows, this->_W_cols)
         = prev_activated[0][0].transpose() * this->delta[0][0];
 
-    for ( int i = 0; i < this->_W_cols; i++ ) {
-        this->_dE_dbW[0][0](0, i) = 0.f;
-        for ( int n = 0; n < this->batch_size; n++ ) {
-            this->_dE_dbW[0][0](0, i) += this->delta[0][0](n, i);
-        }
-    }
+    this->_dE_dbW[0][0].block(0, 0, 1, this->_W_cols) = this->delta[0][0].colwise().sum();
+
     this->_dE_dbW[0][0] /= (float)this->batch_size;
 }
 
@@ -158,8 +154,6 @@ void FullConnect_Layer::allocate_memory(const int batch_size) {
 
     this->_dE_dbW.resize(1); this->_dE_dbW[0].resize(1);
     this->_dE_dbW[0][0].resize(this->_W_rows+1, this->_W_cols);
-
-    this->
 }
 
 
