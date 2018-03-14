@@ -10,6 +10,9 @@
 #include "Eigen/Core"
 #include "layer.h"
 #include "full_connect_layer.h"
+#include "convolution_layer.h"
+#include "en_tensor_layer.h"
+#include "flatten_layer.h"
 #include "input_layer.h"
 #include "output_layer.h"
 #include "my_math.h"
@@ -38,16 +41,18 @@ public:
     void build_fullConnectedLayer(const function<MatrixXf(MatrixXf)> f,
                                   const function<MatrixXf(MatrixXf)> d_f,
                                   const int (&W_shape)[2], const bool use_bias,
-                                  const float W_min=-1.f, const float W_max=1.f,
-                                  const float b_min=-1.f, const float b_max=1.f);
-    // void build_convolutionLayer(const function<MatrixXf(MatrixXf)> f,
-    //                             const function<MatrixXf(MatrixXf)> d_f,
-    //                             const int prev_ch, const int ch,
-    //                             const int filter_height, const int filter_width,
-    //                             const int stlide_height, const int stlide_width,
-    //                             const int padding_height, const int padding_width,
-    //                             const float W_min, const float W_max,
-    //                             const float b_min, const float b_max)
+                                  const float W_min=-0.01, const float W_max=0.01,
+                                  const float b_min=-0.01, const float b_max=0.01);
+    void build_convolutionLayer(const function<MatrixXf(MatrixXf)> f,
+                                const function<MatrixXf(MatrixXf)> d_f,
+                                const int prev_ch, const int ch,
+                                const int filter_height, const int filter_width,
+                                const int stlide_height=1, const int stlide_width=1,
+                                const int padding_height=0, const int padding_width=0,
+                                const float W_min=-0.1, const float W_max=0.1,
+                                const float b_min=-0.1, const float b_max=0.1);
+    void build_en_tensor_layer(const int channel_num, const int height, const int width);
+    void build_flatten_layer(const int channel_num, const int height, const int width);
     void build_outputLayer(const int class_num,
                            const function<MatrixXf(MatrixXf)> f,
                            const string loss_name);
@@ -117,19 +122,45 @@ void Neural_Network::build_fullConnectedLayer(const function<MatrixXf(MatrixXf)>
 }
 
 
-// void Neural_Network::build_convolutionLayer(const function<MatrixXf(MatrixXf)> f,
-//                                             const function<MatrixXf(MatrixXf)> d_f,
-//                                             const int prev_ch, const int ch,
-//                                             const int filter_height, const int filter_width,
-//                                             const int stlide_height, const int stlide_width,
-//                                             const int padding_height, const int padding_width,
-//                                             const float W_min, const float W_max,
-//                                             const float b_min, const float b_max) {
-//
-//     shared_ptr<Layer> layer( new FullConnect_Layer() );
-//     layer->build_layer(f, d_f, W_shape, use_bias, W_min, W_max, b_min, b_max);
-//     this->_layers.push_back(layer);
-// }
+void Neural_Network::build_convolutionLayer(const function<MatrixXf(MatrixXf)> f,
+                                            const function<MatrixXf(MatrixXf)> d_f,
+                                            const int prev_ch, const int ch,
+                                            const int filter_height, const int filter_width,
+                                            const int stlide_height, const int stlide_width,
+                                            const int padding_height, const int padding_width,
+                                            const float W_min, const float W_max,
+                                            const float b_min, const float b_max) {
+
+    shared_ptr<Layer> layer( new Convolution_Layer() );
+    layer->build_layer(f,
+                       d_f,
+                       prev_ch, ch,
+                       filter_height, filter_width,
+                       stlide_height, stlide_width,
+                       padding_height, padding_width,
+                       W_min, W_max,
+                       b_min, b_max);
+    this->_layers.push_back(layer);
+}
+
+
+void Neural_Network::build_en_tensor_layer(const int channel_num,
+                                           const int height,
+                                           const int width) {
+
+    shared_ptr<Layer> layer( new En_Tensor_Layer() );
+    layer->build_layer(channel_num, height, width);
+    this->_layers.push_back(layer);
+}
+
+
+void Neural_Network::build_flatten_layer(const int channel_num,
+                                         const int height,
+                                         const int width) {
+    shared_ptr<Layer> layer( new Flatten_Layer() );
+    layer->build_layer(channel_num, height, width);
+    this->_layers.push_back(layer);
+}
 
 
 void Neural_Network::build_outputLayer(const int class_num,
@@ -165,8 +196,22 @@ void Neural_Network::allocate_memory(const int batch_size) {
     // hidden layer
     for ( int i = 1; i < this->_layer_num-1; i++ ) {
         if ( i < this->_layer_num-2 ) {
-            this->_layers[i]->allocate_memory(this->batch_size,
-                                              this->_layers[i+1]->get_use_bias());
+            if ( this->_layers[i]->get_type() == "full_connect_layer" ) {
+                this->_layers[i]->allocate_memory(this->batch_size,
+                                                  this->_layers[i+1]->get_use_bias());
+            } else if ( this->_layers[i]->get_type() == "en_tensor_layer" ) {
+                this->_layers[i]->allocate_memory(this->batch_size);
+            } else if ( this->_layers[i]->get_type() == "flatten_layer" ) {
+                this->_layers[i]->allocate_memory(this->batch_size);
+            } else if ( this->_layers[i]->get_type() == "convolution_layer" ) {
+                this->_layers[i]->allocate_memory(this->batch_size,
+                                                  this->_layers[i-1]->get_input_map_shape()[0],
+                                                  this->_layers[i-1]->get_input_map_shape()[1]);
+            } else {
+                cout << this->_layers[i]->get_type() << endl;
+                cout << "Neural Networkクラスでは指定のレイヤークラスを利用できません。" << endl;
+                exit(1);
+            }
         } else {
             this->_layers[i]->allocate_memory(this->batch_size);
         }
@@ -196,12 +241,43 @@ void Neural_Network::backprop(const MatrixXf pred, const MatrixXf label) {
     this->_layers.back()->calc_delta(pred, label);
     this->_layers[this->_layer_num-2]->set_delta(this->_layers.back()->get_delta());
 
-    // hidden_layer
+    // hidden_layer (delta)
     for ( int i = this->_layer_num-2; i != 1; --i ) {
-        this->_layers[i-1]->calc_delta(this->_layers[i]->get_delta(),
-                                       this->_layers[i]->get_bW(),
-                                       this->_layers[i]->get_W_rows(),
-                                       this->_layers[i]->get_W_cols());
+        if ( this->_layers[i-1]->get_type() == "full_connect_layer" ) {
+            this->_layers[i-1]->calc_delta(this->_layers[i]->get_delta(),
+                                           this->_layers[i]->get_bW(),
+                                           this->_layers[i]->get_W_rows(),
+                                           this->_layers[i]->get_W_cols());
+        } else if ( this->_layers[i-1]->get_type() == "flatten_layer" ) {
+            this->_layers[i-1]->calc_delta(this->_layers[i]->get_delta());
+        } else if ( this->_layers[i-1]->get_type() == "en_tensor_layer" ) {
+            this->_layers[i-1]->calc_delta(this->_layers[i]->get_delta());
+        } else if ( this->_layers[i-1]->get_type() == "convolution_layer" ) {
+            this->_layers[i-1]->calc_delta(this->_layers[i]->get_delta());
+        } else {
+            cout << this->_layers[i-1]->get_type() << endl;
+            cout << "(calc_delta)Neural Networkクラスでは指定のレイヤークラスを利用できません。" << endl;
+            exit(1);
+        }
+    }
+
+    // hidden_layer (dE_db, dE_dW)
+    for ( int i = 0; i != (int)this->_layers.size(); i++ ) {
+        if ( this->_layers[i]->get_trainable() ) {
+            if ( this->_layers[i]->get_type() == "full_connect_layer" ) {
+                this->_layers[i]->calc_differential(this->_layers[i-1]->get_activated());
+            } else if ( this->_layers[i]->get_type() == "flatten_layer" ) {
+                ;
+            } else if ( this->_layers[i]->get_type() == "en_tensor_layer" ) {
+                ;
+            } else if ( this->_layers[i]->get_type() == "convolution_layer" ) {
+                this->_layers[i]->calc_differential(this->_layers[i-1]->get_activated());
+            } else {
+                cout << this->_layers[i]->get_type() << endl;
+                cout << "(calc_dE)Neural Networkクラスでは指定のレイヤークラスを利用できません。" << endl;
+                exit(1);
+            }
+        }
     }
 }
 

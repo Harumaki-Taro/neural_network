@@ -18,6 +18,7 @@ public:
 
     // getter
     virtual bool get_trainable(void);
+    virtual string get_type(void);
     virtual vector<vector <MatrixXf> > get_activated(void);
     virtual int get_batch_size(void);
     int get_example_size(void);
@@ -28,6 +29,7 @@ public:
 
 private:
     bool _trainable = false;
+    const string type = "input_layer";
     // Parameters specified at first
     int batch_size;
     int _example_size;
@@ -49,6 +51,7 @@ void Input_Layer::allocate_memory(const int batch_size, const int example_size, 
 
 
 bool Input_Layer::get_trainable(void) { return this->_trainable; }
+string Input_Layer::get_type(void) { return this->type; }
 vector<vector <MatrixXf> > Input_Layer::get_activated(void) { return this->_activated; }
 int Input_Layer::get_batch_size(void) { return this->batch_size; }
 int Input_Layer::get_example_size(void) { return this->_example_size; }

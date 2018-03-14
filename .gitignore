@@ -7,7 +7,4 @@ test.*
 /.imdone
 loss.h
 train.h
-convolution_layer.h
-en_tensor_layer.h
-flatten_layer.h
 sgd.h

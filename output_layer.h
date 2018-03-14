@@ -25,6 +25,7 @@ public:
 
     // getter
     virtual bool get_trainable(void);
+    virtual string get_type(void);
     virtual int get_batch_size(void);
     virtual vector<vector <MatrixXf> > get_activated(void);
     virtual vector<vector <MatrixXf> > get_delta(void);
@@ -39,6 +40,7 @@ public:
 
 private:
     bool _trainable = false;
+    const string type = "output_layer";
     // Parameters tracked during learning
     vector<vector <MatrixXf> > delta;
     // Parameters specified at first
@@ -80,6 +82,7 @@ void Output_Layer::allocate_memory(const int batch_size) {
 
 
 bool Output_Layer::get_trainable(void) { return this->_trainable; }
+string Output_Layer::get_type(void) { return this->type; }
 int Output_Layer::get_batch_size(void) { return this->batch_size; }
 vector<vector <MatrixXf> > Output_Layer::get_activated(void) { return this->_activated; }
 vector<vector <MatrixXf> > Output_Layer::get_delta(void) { return this->delta; }

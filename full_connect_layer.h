@@ -57,6 +57,7 @@ public:
 
     // setter
     virtual void set_batch_size(const int batch_size, const bool use_bias);
+    virtual string get_type(void);
     virtual void set_bW(const MatrixXf W, const MatrixXf b, const bool use_bias);
     // virtual void set_W(MatrixXf);
     // virtual void set_b(MatrixXf);
@@ -66,6 +67,7 @@ public:
 
 private:
     bool trainable = true;
+    const string type = "full_connect_layer";
     // Parameters tracked during learning
     vector<vector <MatrixXf> > delta;
     // Parameters specified at first
@@ -165,6 +167,7 @@ void FullConnect_Layer::allocate_memory(const int batch_size, const bool use_bia
 
 
 bool FullConnect_Layer::get_trainable(void) { return this->trainable; }
+string FullConnect_Layer::get_type(void) { return this->type; }
 int FullConnect_Layer::get_batch_size(void) { return this->batch_size; }
 bool FullConnect_Layer::get_use_bias(void) { return this->use_bias; }
 vector<vector <MatrixXf> > FullConnect_Layer::get_bW(void) { return this->bW; }

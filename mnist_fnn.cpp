@@ -2,7 +2,7 @@
 //  10lines_neural_network.cpp
 //
 // C++
-// clang-omp++ -O3 -std=c++14 -fopenmp neural_network.cpp
+// clang-omp++ -O3 -mtune=native -std=c++14 -fopenmp mnist_fnn.cpp
 // Python
 // c++ -O3 -Wall -shared -std=c++11 -undefined dynamic_lookup `python3 -m pybind11 --includes` neural_network.cpp -o neural_network`python3-config --extension-suffix`
 //
@@ -10,9 +10,8 @@
 
 #include <iostream>
 #include <chrono>
-// #include <omp.h>
 #include "Eigen/Core"
-#include "openmp.h"
+#include "initialize.h"
 #include "my_math.h"
 #include "neural_network.h"
 // #include "loss.h"
@@ -31,7 +30,8 @@ using Eigen::MatrixXf;
 //
 
 
-void example(void) {
+int main(void) {
+    initialize();
     // Get dataset
     Mnist mnist = Mnist();
 
@@ -74,10 +74,33 @@ void example(void) {
 
         for ( int j = 0; j != (int)nn.get_layers().size(); j++ ) {
             if ( nn.get_layers()[j]->get_trainable() ) {
-                nn.get_layers()[j]->calc_differential(nn.get_layers()[j-1]->get_activated());
-                nn.get_layers()[j]->bW[0][0]
-                    = nn.get_layers()[j]->get_bW()[0][0]
-                     - (eps * nn.get_layers()[j]->_dE_dbW[0][0].array()).matrix();
+                if ( nn.get_layers()[j]->get_type() == "full_connect_layer" ) {
+                    nn.get_layers()[j]->bW[0][0]
+                        = nn.get_layers()[j]->get_bW()[0][0]
+                         - (eps * nn.get_layers()[j]->_dE_dbW[0][0].array()).matrix();
+                } else if ( nn.get_layers()[j]->get_type() == "flatten_layer" ) {
+                    ;
+                } else if ( nn.get_layers()[j]->get_type() == "flatten_layer" ) {
+                    ;
+                } else if ( nn.get_layers()[j]->get_type() == "en_tensor_layer" ) {
+                    ;
+                } else if ( nn.get_layers()[j]->get_type() == "convolution_layer" ) {
+                    for ( int k = 0; k < nn.get_layers()[j]->get_channel_num(); k++ ) {
+                        for ( int l = 0; l < nn.get_layers()[j]->get_prev_channel_num(); l++ ) {
+                            nn.get_layers()[j]->W[k][l]
+                                = nn.get_layers()[j]->W[k][l]
+                                 - (eps * nn.get_layers()[j]->dE_dW[k][l].array()).matrix();
+                        }
+                    }
+                    nn.get_layers()[j]->b
+                        = nn.get_layers()[j]->b
+                         - (eps * nn.get_layers()[j]->dE_db.array()).matrix();
+                } else {
+                    cout << "不詳クラス" << endl;
+                    exit(1);
+                }
+
+
 
                 // if ( i == 0 ) {
                 //     nn.get_layers()[j]->calc_differential(nn.get_layers()[j-1]->get_activated());
@@ -116,20 +139,8 @@ void example(void) {
             cout << pred << endl;
         }
     }
-}
 
-
-int main(int argc, const char * argv[]) {
-    // // openMP
-    // int n = Eigen::nbThreads( );
-    // omp_set_num_threads(n-2);
-    // Eigen::setNbThreads(n-2);
-    std::srand((unsigned int) time(0));
-
-    use_openmp();
-    example();
-
-	return 0;
+    return 0;
 }
 
 

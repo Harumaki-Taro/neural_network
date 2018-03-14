@@ -14,7 +14,7 @@ using Eigen::MatrixXf;
 
 class Layer {
 public:
-    virtual void forwardprop(const MatrixXf X) { cout << "使用禁止a" << endl; exit(1); }
+    // virtual void forwardprop(const MatrixXf X) { cout << "使用禁止a" << endl; exit(1); }
     virtual void forwardprop(const vector< vector<MatrixXf> > X) { cout << "使用禁止a2" << endl; exit(1); }
     virtual void calc_delta(const vector<vector <MatrixXf> > next_delta,
                             const vector<vector <MatrixXf> > next_bW,
@@ -54,6 +54,7 @@ public:
     virtual void allocate_memory(const int batch_size, const int prev_cols, const int prev_rows) { cout << "使用禁止i2" << endl; exit(1); }
     // getter
     virtual bool get_trainable(void) { cout << "使用禁止j" << endl; exit(1); return 1; }
+    virtual string get_type(void) { cout << "使用禁止j2" << endl; exit(1); return "0"; }
     virtual int get_batch_size(void) { cout << "使用禁止k" << endl; exit(1); return 1; }
     virtual bool get_use_bias(void) { cout << "使用禁止l" << endl; exit(1); return false; }
     virtual vector<vector <MatrixXf> > get_bW(void) {
@@ -86,6 +87,8 @@ public:
         cout << "使用禁止v" << endl;
         vector< vector<MatrixXf> > tmp;
         tmp.resize(1); tmp[0].resize(1); tmp[0][0] = MatrixXf::Zero(1,1); return tmp; }
+    virtual vector<int> get_input_map_shape(void) {cout << "使用禁止v2" << endl; exit(1); vector<int> tmp; tmp.resize(1); tmp[0] = 0; return tmp; }
+    virtual vector<int> get_output_map_shape(void) {cout << "使用禁止v3" << endl; exit(1); vector<int> tmp; tmp.resize(1); tmp[0] = 0; return tmp; }
     // setter
     virtual void set_batch_size(const int batch_size) { cout << "使用禁止w" << endl; exit(1); }
     virtual void set_batch_size(const int batch_size,
@@ -96,9 +99,16 @@ public:
     virtual void set_delta(const vector< vector<MatrixXf> > delta) { cout << "使用禁止z2" << endl; exit(1); }
     virtual void set_activateFunction(const function<MatrixXf(MatrixXf)> f) { cout << "使用禁止aa" << endl; exit(1); }
     virtual void set_d_activateFunction(const function<MatrixXf(MatrixXf)> d_f) { cout << "使用禁止ab" << endl; exit(1); }
+    virtual int get_channel_num(void) { cout << "使用禁止ac" << endl; exit(1); return 1; }
+    virtual int get_prev_channel_num(void) { cout << "使用禁止ad" << endl; exit(1); return 1; }
+    virtual vector<int>  get_filter_shape(void) { cout << "使用禁止ae" << endl; exit(1); vector<int> tmp; tmp.resize(1); tmp[0] = 0; return tmp; }
     // 子クラスのprivateへ移行予定
     vector<vector <MatrixXf> > _dE_dbW;
     vector<vector <MatrixXf> > bW;
+    vector<vector <MatrixXf> > W;   // NOTE:convolutionしか使ってない問題
+    vector< vector<MatrixXf> > dE_dW;   // NOTE:convolutionしか使ってない問題
+    MatrixXf dE_db; // NOTE:convolutionしか使ってない問題
+    MatrixXf b; // NOTE:convolutionしか使ってない問題
     vector<vector <MatrixXf> > _activated;
 };
 
