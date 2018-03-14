@@ -37,7 +37,7 @@ void example(void) {
 
     // Define learning parameters.
     MatrixXf pred;
-    float eps = 0.001;
+    float eps = 0.01;
     unsigned int mini_batch_size = 100;
     unsigned int epoch = 10000;
 
@@ -68,14 +68,16 @@ void example(void) {
         Mini_Batch mini_batch = mnist._train.randomPop(mini_batch_size);
         pred = nn.forwardprop(mini_batch.example);
         nn.backprop(pred, mini_batch.label);
+
+
         vector<MatrixXf> prev_bW{MatrixXf::Zero(1,1), MatrixXf::Zero(785,200), MatrixXf::Zero(201,10), MatrixXf::Zero(1,1)};
 
         for ( int j = 0; j != (int)nn.get_layers().size(); j++ ) {
             if ( nn.get_layers()[j]->get_trainable() ) {
                 nn.get_layers()[j]->calc_differential(nn.get_layers()[j-1]->get_activated());
-                nn.get_layers()[j]->bW
-                    = nn.get_layers()[j]->get_bW()
-                     - (eps * nn.get_layers()[j]->_dE_dbW.array()).matrix();
+                nn.get_layers()[j]->bW[0][0]
+                    = nn.get_layers()[j]->get_bW()[0][0]
+                     - (eps * nn.get_layers()[j]->_dE_dbW[0][0].array()).matrix();
 
                 // if ( i == 0 ) {
                 //     nn.get_layers()[j]->calc_differential(nn.get_layers()[j-1]->get_activated());
@@ -104,10 +106,10 @@ void example(void) {
         }
         end = std::chrono::system_clock::now();  // 計測終了時間
 
-        if ( i % 10 == 0 ) {
+        if ( i % 50 == 0 ) {
             double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count(); //処理に要した時間をミリ秒に変換
             cout << i << endl;
-            cout << "loss: " << nn.calc_loss_with_prev_pred(mini_batch.label) << "\t(time: " << elapsed << "msec)" << endl;
+            cout << "loss: " << nn.calc_loss_with_prev_pred(mini_batch.label) << "\t(time: " << elapsed << "msec / example)" << endl;
         }
 
         if ( i + 1 == epoch ) {
@@ -122,9 +124,9 @@ int main(int argc, const char * argv[]) {
     // int n = Eigen::nbThreads( );
     // omp_set_num_threads(n-2);
     // Eigen::setNbThreads(n-2);
-    use_openmp();
-
     std::srand((unsigned int) time(0));
+
+    use_openmp();
     example();
 
 	return 0;

@@ -40,6 +40,14 @@ public:
                                   const int (&W_shape)[2], const bool use_bias,
                                   const float W_min=-1.f, const float W_max=1.f,
                                   const float b_min=-1.f, const float b_max=1.f);
+    // void build_convolutionLayer(const function<MatrixXf(MatrixXf)> f,
+    //                             const function<MatrixXf(MatrixXf)> d_f,
+    //                             const int prev_ch, const int ch,
+    //                             const int filter_height, const int filter_width,
+    //                             const int stlide_height, const int stlide_width,
+    //                             const int padding_height, const int padding_width,
+    //                             const float W_min, const float W_max,
+    //                             const float b_min, const float b_max)
     void build_outputLayer(const int class_num,
                            const function<MatrixXf(MatrixXf)> f,
                            const string loss_name);
@@ -109,6 +117,21 @@ void Neural_Network::build_fullConnectedLayer(const function<MatrixXf(MatrixXf)>
 }
 
 
+// void Neural_Network::build_convolutionLayer(const function<MatrixXf(MatrixXf)> f,
+//                                             const function<MatrixXf(MatrixXf)> d_f,
+//                                             const int prev_ch, const int ch,
+//                                             const int filter_height, const int filter_width,
+//                                             const int stlide_height, const int stlide_width,
+//                                             const int padding_height, const int padding_width,
+//                                             const float W_min, const float W_max,
+//                                             const float b_min, const float b_max) {
+//
+//     shared_ptr<Layer> layer( new FullConnect_Layer() );
+//     layer->build_layer(f, d_f, W_shape, use_bias, W_min, W_max, b_min, b_max);
+//     this->_layers.push_back(layer);
+// }
+
+
 void Neural_Network::build_outputLayer(const int class_num,
                                        const function<MatrixXf(MatrixXf)> f,
                                        const string loss_name) {
@@ -132,7 +155,7 @@ void Neural_Network::allocate_memory(const int batch_size) {
     this->batch_size = batch_size;
     this->_layer_num = this->_layers.size();
     auto fst_layer = ++this->_layers.begin();
-    _example_size = (*fst_layer)->get_W().rows();
+    this->_example_size = (*fst_layer)->get_W()[0][0].rows();
 
     // input layer
     this->_layers.front()->allocate_memory(this->batch_size,
@@ -156,13 +179,13 @@ void Neural_Network::allocate_memory(const int batch_size) {
 
 MatrixXf Neural_Network::forwardprop(const MatrixXf X) {
     // input layer
-    this->_layers.front()->_activated.block(0,1,this->batch_size,this->_example_size) = X;
+    this->_layers.front()->_activated[0][0].block(0,1,this->batch_size,this->_example_size) = X;
 
     // hidden layer -> output layer
     for ( int i = 1; i < this->_layer_num; i++ ) {
         this->_layers[i]->forwardprop(this->_layers[i-1]->get_activated());
     }
-    this->_pred = this->_layers.back()->get_activated();
+    this->_pred = this->_layers.back()->get_activated()[0][0];
 
     return this->_pred;
 }

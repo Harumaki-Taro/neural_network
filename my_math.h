@@ -2,13 +2,16 @@
 #define INCLUDE_my_math_h_
 
 #include <iostream>
+#include <random>
 #include <math.h>
+#include <vector>
 #include "Eigen/Core"
 #include "Eigen/Geometry"
 
 using std::cout;
 using std::endl;
 using std::string;
+using std::vector;
 using Eigen::MatrixXf;
 using Eigen::ArrayXXf;
 using Eigen::pow;
@@ -190,6 +193,50 @@ float mean_cross_entropy_one_of_k(const MatrixXf y, const MatrixXf t) {
 
 MatrixXf elemntwiseProduct(const MatrixXf m1, const MatrixXf m2) {
     return (m1.array() * m2.array()).matrix();
+}
+
+
+vector<vector <MatrixXf> > uniform_rand(const int (&shape)[4], const float min, const float max,
+                                        const int seed=0) {
+    // set random seed
+    int _seed;
+    if ( max - min <= 0.f ) {
+        cout << "minよりmaxの方が小さいです" << endl;
+        exit(1);
+    }
+    if ( seed == 0 ) {
+        std::random_device rnd;
+        _seed = rnd();
+    } else {
+        _seed = seed;
+    }
+
+    // Mel sense twister
+    std::mt19937 mt(_seed);
+    std::uniform_int_distribution<float> gen_rand(min, max);
+
+    // allocate memory
+    vector <vector <MatrixXf> > output;
+    output.resize(shape[0]);
+    for ( int i = 0; i < shape[0]; i++ ) {
+        output[i].resize(shape[1]);
+        for ( int j = 0; j < shape[1]; j++ ) {
+            output[i][j].resize(shape[2], shape[3]);
+        }
+    }
+
+    // set random value
+    for ( int i = 0; i < shape[0]; i++ ) {
+        for ( int j = 0; j < shape[1]; j++ ) {
+            for ( int k = 0; k < shape[2]; k++ ) {
+                for ( int l = 0; l < shape[3]; l++ ) {
+                    output[i][j](k,l) = gen_rand(mt);
+                }
+            }
+        }
+    }
+
+    return output;
 }
 
 
