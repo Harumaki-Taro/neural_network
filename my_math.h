@@ -102,7 +102,7 @@ MatrixXf diff(const MatrixXf m1, const MatrixXf m2) {
         <Output>
             m1 - m2 for every element of the input matrix m1, m2.
     */
-    return (m1.array() - m2.array()).matrix();
+    return m1 - m2;
 }
 
 

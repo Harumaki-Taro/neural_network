@@ -58,7 +58,7 @@ public:
                            const string loss_name);
 
     // initialize for computing
-    void allocate_memory(const int batch_size);
+    void allocate_memory(const int batch_size, const int example_size);
 
     // train or evaluate
     MatrixXf forwardprop(const MatrixXf X);
@@ -182,38 +182,32 @@ void Neural_Network::build_outputLayer(const int class_num,
 }
 
 
-void Neural_Network::allocate_memory(const int batch_size) {
+//NOTE: 本当はバッチサイズだけで良いはずなのでどうにかする問題
+void Neural_Network::allocate_memory(const int batch_size, const int example_size) {
     this->batch_size = batch_size;
     this->_layer_num = this->_layers.size();
-    auto fst_layer = ++this->_layers.begin();
-    this->_example_size = (*fst_layer)->get_W()[0][0].rows();
+    this->_example_size = example_size;
 
     // input layer
     this->_layers.front()->allocate_memory(this->batch_size,
-                                           this->_example_size,
-                                           (*fst_layer)->get_use_bias());
+                                           this->_example_size);
 
     // hidden layer
     for ( int i = 1; i < this->_layer_num-1; i++ ) {
-        if ( i < this->_layer_num-2 ) {
-            if ( this->_layers[i]->get_type() == "full_connect_layer" ) {
-                this->_layers[i]->allocate_memory(this->batch_size,
-                                                  this->_layers[i+1]->get_use_bias());
-            } else if ( this->_layers[i]->get_type() == "en_tensor_layer" ) {
-                this->_layers[i]->allocate_memory(this->batch_size);
-            } else if ( this->_layers[i]->get_type() == "flatten_layer" ) {
-                this->_layers[i]->allocate_memory(this->batch_size);
-            } else if ( this->_layers[i]->get_type() == "convolution_layer" ) {
-                this->_layers[i]->allocate_memory(this->batch_size,
-                                                  this->_layers[i-1]->get_input_map_shape()[0],
-                                                  this->_layers[i-1]->get_input_map_shape()[1]);
-            } else {
-                cout << this->_layers[i]->get_type() << endl;
-                cout << "Neural Networkクラスでは指定のレイヤークラスを利用できません。" << endl;
-                exit(1);
-            }
-        } else {
+        if ( this->_layers[i]->get_type() == "full_connect_layer" ) {
             this->_layers[i]->allocate_memory(this->batch_size);
+        } else if ( this->_layers[i]->get_type() == "en_tensor_layer" ) {
+            this->_layers[i]->allocate_memory(this->batch_size);
+        } else if ( this->_layers[i]->get_type() == "flatten_layer" ) {
+            this->_layers[i]->allocate_memory(this->batch_size);
+        } else if ( this->_layers[i]->get_type() == "convolution_layer" ) {
+            this->_layers[i]->allocate_memory(this->batch_size,
+                                              this->_layers[i-1]->get_input_map_shape()[0],
+                                              this->_layers[i-1]->get_input_map_shape()[1]);
+        } else {
+            cout << this->_layers[i]->get_type() << endl;
+            cout << "Neural Networkクラスでは指定のレイヤークラスを利用できません。" << endl;
+            exit(1);
         }
     }
 
@@ -224,7 +218,7 @@ void Neural_Network::allocate_memory(const int batch_size) {
 
 MatrixXf Neural_Network::forwardprop(const MatrixXf X) {
     // input layer
-    this->_layers.front()->_activated[0][0].block(0,1,this->batch_size,this->_example_size) = X;
+    this->_layers.front()->forwardprop(X);
 
     // hidden layer -> output layer
     for ( int i = 1; i < this->_layer_num; i++ ) {
@@ -322,7 +316,7 @@ void Neural_Network::set_batch_size(const int batch_size) {
         <NONE>
             All except weight and bias are initialized.
     */
-    this->allocate_memory(batch_size);
+    this->allocate_memory(batch_size, this->_example_size);
 }
 void Neural_Network::set_loss_func(const function<float(MatrixXf, MatrixXf)> loss_func) {
     this->loss_func = loss_func;

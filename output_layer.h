@@ -17,7 +17,7 @@ using Eigen::MatrixXf;
 class Output_Layer : public Layer {
 public:
     virtual void forwardprop(const vector<vector <MatrixXf> > X);
-    virtual void calc_delta(const MatrixXf label, const MatrixXf pred);
+    virtual void calc_delta(const MatrixXf pred, const MatrixXf label);
     virtual void build_layer(const function<MatrixXf(MatrixXf)> f,
                              const function<MatrixXf(MatrixXf, MatrixXf)> delta_f,
                              const int class_num);
@@ -52,12 +52,12 @@ private:
 
 
 void Output_Layer::forwardprop(const vector<vector <MatrixXf> > X) {
-    this->_activated[0][0] = f(X[0][0].block(0,1,X[0][0].rows(),X[0][0].cols()-1));
+    this->_activated[0][0] = f(X[0][0]);
 }
 
 
-void Output_Layer::calc_delta(const MatrixXf label, const MatrixXf pred) {
-    this->delta[0][0] = delta_f(label, pred);
+void Output_Layer::calc_delta(const MatrixXf pred, const MatrixXf label) {
+    this->delta[0][0] = delta_f(pred, label);
 }
 
 

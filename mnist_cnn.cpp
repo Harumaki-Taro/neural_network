@@ -1,5 +1,5 @@
 //
-//  mnist_fnn.cpp
+//  mnist_cnn.cpp
 //
 // C++
 // clang-omp++ -O3 -mtune=native -std=c++14 -fopenmp mnist_fnn.cpp
@@ -43,7 +43,11 @@ int main(void) {
 
     // Build a neural network archtecture.
     Neural_Network nn;
-    int W1_shape[2] = { 784, 500 };
+    nn.build_en_tensor_layer(1, 28, 28);
+    nn.build_convolutionLayer(tanh_, tanh_d, 1, 5, 3, 3);
+    nn.build_convolutionLayer(tanh_, tanh_d, 5, 3, 3, 3);
+    nn.build_en_tensor_layer(3, 24, 24);
+    int W1_shape[2] = { 576, 500 };
     nn.build_fullConnectedLayer(tanh_, tanh_d, W1_shape, true);
     int W2_shape[2] = { 500, 200 };
     nn.build_fullConnectedLayer(tanh_, tanh_d, W2_shape, true);
@@ -69,12 +73,15 @@ int main(void) {
         pred = nn.forwardprop(mini_batch.example);
         nn.backprop(pred, mini_batch.label);
 
+
+        vector<MatrixXf> prev_bW{MatrixXf::Zero(1,1), MatrixXf::Zero(785,200), MatrixXf::Zero(201,10), MatrixXf::Zero(1,1)};
+
         for ( int j = 0; j != (int)nn.get_layers().size(); j++ ) {
             if ( nn.get_layers()[j]->get_trainable() ) {
                 if ( nn.get_layers()[j]->get_type() == "full_connect_layer" ) {
                     nn.get_layers()[j]->bW[0][0]
                         = nn.get_layers()[j]->get_bW()[0][0]
-                        - (eps * nn.get_layers()[j]->_dE_dbW[0][0].array()).matrix();
+                         - (eps * nn.get_layers()[j]->_dE_dbW[0][0].array()).matrix();
                 } else if ( nn.get_layers()[j]->get_type() == "flatten_layer" ) {
                     ;
                 } else if ( nn.get_layers()[j]->get_type() == "flatten_layer" ) {
@@ -86,7 +93,7 @@ int main(void) {
                         for ( int l = 0; l < nn.get_layers()[j]->get_prev_channel_num(); l++ ) {
                             nn.get_layers()[j]->W[k][l]
                                 = nn.get_layers()[j]->W[k][l]
-                                - (eps * nn.get_layers()[j]->dE_dW[k][l].array()).matrix();
+                                 - (eps * nn.get_layers()[j]->dE_dW[k][l].array()).matrix();
                         }
                     }
                     nn.get_layers()[j]->b

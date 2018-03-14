@@ -42,8 +42,8 @@ public:
     vector<int> get_padding_shape(void);
     vector<int> get_input_map_shape(void);
     vector<int> get_output_map_shape(void);
-    // vector<vector <MatrixXf> > get_W(void);
-    // MatrixXf get_b(void);
+    vector<vector <MatrixXf> > get_W(void);
+    MatrixXf get_b(void);
     vector< vector<MatrixXf> > get_preActivate(void);
     virtual vector< vector<MatrixXf> > get_activated(void);
     virtual vector<vector <MatrixXf> > get_delta(void);
@@ -317,6 +317,8 @@ vector<int> Convolution_Layer::get_output_map_shape(void) {
     vector<int> output_map_shape{ this->output_height, this->output_width };
     return output_map_shape;
 }
+vector<vector <MatrixXf> > Convolution_Layer::get_W(void) { return this->W; }
+MatrixXf Convolution_Layer::get_b(void) {return this->b; }
 vector< vector<MatrixXf> > Convolution_Layer::get_preActivate(void) { return this->preActivate; }
 vector< vector<MatrixXf> > Convolution_Layer::get_activated(void) { return this->_activated; }
 vector< vector<MatrixXf> > Convolution_Layer::get_delta(void) { return this->delta; }

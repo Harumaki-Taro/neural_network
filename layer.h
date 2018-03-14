@@ -16,6 +16,7 @@ class Layer {
 public:
     // virtual void forwardprop(const MatrixXf X) { cout << "使用禁止a" << endl; exit(1); }
     virtual void forwardprop(const vector< vector<MatrixXf> > X) { cout << "使用禁止a2" << endl; exit(1); }
+    virtual void forwardprop(const MatrixXf X) { cout << "使用禁止a3" << endl; exit(1); }
     virtual void calc_delta(const vector<vector <MatrixXf> > next_delta,
                             const vector<vector <MatrixXf> > next_bW,
                             const int nextW_rows, const int nextW_cols) { cout << "使用禁止b" << endl; exit(1); }
@@ -46,11 +47,9 @@ public:
                              const float b_min, const float b_max) { cout << "使用禁止f2" << endl; exit(1); }
     virtual void build_layer(const int channel_num, const int height, const int width) { cout << "使用禁止f3" << endl; exit(1); }
     virtual void allocate_memory(const int batch_size) { cout << "使用禁止g" << endl; exit(1); }
+    // virtual void allocate_memory(const int batch_size) { cout << "使用禁止h" << endl; exit(1); }
     virtual void allocate_memory(const int batch_size,
-                                 const bool use_bias_in_next_layer) { cout << "使用禁止h" << endl; exit(1); }
-    virtual void allocate_memory(const int batch_size,
-                                 const int example_size,
-                                 const bool use_bias) { cout << "使用禁止i" << endl; exit(1); }
+                                 const int example_size) { cout << "使用禁止i" << endl; exit(1); }
     virtual void allocate_memory(const int batch_size, const int prev_cols, const int prev_rows) { cout << "使用禁止i2" << endl; exit(1); }
     // getter
     virtual bool get_trainable(void) { cout << "使用禁止j" << endl; exit(1); return 1; }
@@ -91,8 +90,8 @@ public:
     virtual vector<int> get_output_map_shape(void) {cout << "使用禁止v3" << endl; exit(1); vector<int> tmp; tmp.resize(1); tmp[0] = 0; return tmp; }
     // setter
     virtual void set_batch_size(const int batch_size) { cout << "使用禁止w" << endl; exit(1); }
-    virtual void set_batch_size(const int batch_size,
-                                const bool use_bias_in_next_layer) { cout << "使用禁止x" << endl; exit(1); }
+    // virtual void set_batch_size(const int batch_size,
+    //                             const bool use_bias_in_next_layer) { cout << "使用禁止x" << endl; exit(1); }
     virtual void set_batch_size(const int batch_size, const int prev_cols, const int prev_rows) { cout << "使用禁止x2" << endl; exit(1); }
     virtual void set_bW(const MatrixXf W, const MatrixXf b, const bool use_bias) { cout << "使用禁止y" << endl; exit(1); }
     virtual void set_delta(const MatrixXf delta) { cout << "使用禁止z" << endl; exit(1); }
