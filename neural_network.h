@@ -35,32 +35,12 @@ class Neural_Network {
     */
 public:
     // build layers
-    void build_fullConnectedLayer(const function<MatrixXf(MatrixXf)> f,
-                                  const function<MatrixXf(MatrixXf)> d_f,
-                                  const MatrixXf W, const MatrixXf b,
-                                  const bool use_bias);
-    void build_fullConnectedLayer(const function<MatrixXf(MatrixXf)> f,
-                                  const function<MatrixXf(MatrixXf)> d_f,
-                                  const int (&W_shape)[2], const bool use_bias,
-                                  const float W_min=-0.01, const float W_max=0.01,
-                                  const float b_min=-0.01, const float b_max=0.01);
-    void build_convolutionLayer(const function<MatrixXf(MatrixXf)> f,
-                                const function<MatrixXf(MatrixXf)> d_f,
-                                const int prev_ch, const int ch,
-                                const int filter_height, const int filter_width,
-                                const int stlide_height=1, const int stlide_width=1,
-                                const int padding_height=0, const int padding_width=0,
-                                const float W_min=-0.1, const float W_max=0.1,
-                                const float b_min=-0.1, const float b_max=0.1);
-    void build_en_tensor_layer(const int channel_num, const int height, const int width);
-    void build_flatten_layer(const int channel_num, const int height, const int width);
-    void build_max_pooling_layer(const int channel_num,
-                                 const int filter_height, const int filter_width,
-                                 const int stlide_height=1, const int stlide_width=1,
-                                 const int padding_height=0, const int padding_width=0);
-    void build_outputLayer(const int class_num,
-                           const function<MatrixXf(MatrixXf)> f,
-                           const string loss_name);
+    void add_layer(FullConnect_Layer);
+    void add_layer(Output_Layer);
+    void add_layer(Convolution_Layer);
+    void add_layer(Max_Pooling_Layer);
+    void add_layer(En_Tensor_Layer);
+    void add_layer(Flatten_Layer);
 
     // initialize for computing
     void allocate_memory(const int batch_size, const int example_size);
@@ -104,109 +84,39 @@ Neural_Network::Neural_Network(void) {
 }
 
 
-void Neural_Network::build_fullConnectedLayer(const function<MatrixXf(MatrixXf)> f,
-                                              const function<MatrixXf(MatrixXf)> d_f,
-                                              const MatrixXf W, const MatrixXf b,
-                                              const bool use_bias) {
-
-    FullConnect_Layer _layer;
-    _layer.build_layer(f, d_f, W, b, use_bias);
-    std::shared_ptr<Layer> layer = std::make_shared<FullConnect_Layer>(_layer);
-    this->_layers.push_back(layer);
+void Neural_Network::add_layer(FullConnect_Layer layer) {
+    std::shared_ptr<Layer> _layer = std::make_shared<FullConnect_Layer>(layer);
+    this->_layers.push_back(_layer);
 }
 
 
-void Neural_Network::build_fullConnectedLayer(const function<MatrixXf(MatrixXf)> f,
-                                              const function<MatrixXf(MatrixXf)> d_f,
-                                              const int (&W_shape)[2], const bool use_bias,
-                                              const float W_min, const float W_max,
-                                              const float b_min, const float b_max) {
-
-    FullConnect_Layer _layer;
-    _layer.build_layer(f, d_f, W_shape, use_bias, W_min, W_max, b_min, b_max);
-    std::shared_ptr<Layer> layer = std::make_shared<FullConnect_Layer>(_layer);
-    this->_layers.push_back(layer);
+void Neural_Network::add_layer(Output_Layer layer) {
+    std::shared_ptr<Layer> _layer = std::make_shared<Output_Layer>(layer);
+    this->_layers.push_back(_layer);
+    this->loss_func = layer.get_lossFunction();
 }
 
 
-void Neural_Network::build_convolutionLayer(const function<MatrixXf(MatrixXf)> f,
-                                            const function<MatrixXf(MatrixXf)> d_f,
-                                            const int prev_ch, const int ch,
-                                            const int filter_height, const int filter_width,
-                                            const int stlide_height, const int stlide_width,
-                                            const int padding_height, const int padding_width,
-                                            const float W_min, const float W_max,
-                                            const float b_min, const float b_max) {
-
-    Convolution_Layer _layer;
-    _layer.build_layer(f,
-                       d_f,
-                       prev_ch, ch,
-                       filter_height, filter_width,
-                       stlide_height, stlide_width,
-                       padding_height, padding_width,
-                       W_min, W_max,
-                       b_min, b_max);
-    std::shared_ptr<Layer> layer = std::make_shared<Convolution_Layer>(_layer);
-    this->_layers.push_back(layer);
+void Neural_Network::add_layer(Convolution_Layer layer) {
+    std::shared_ptr<Layer> _layer = std::make_shared<Convolution_Layer>(layer);
+    this->_layers.push_back(_layer);
 }
 
 
-void Neural_Network::build_en_tensor_layer(const int channel_num,
-                                           const int height,
-                                           const int width) {
-
-    En_Tensor_Layer _layer;
-    _layer.build_layer(channel_num, height, width);
-    std::shared_ptr<Layer> layer = std::make_shared<En_Tensor_Layer>(_layer);
-    this->_layers.push_back(layer);
+void Neural_Network::add_layer(Max_Pooling_Layer layer) {
+    std::shared_ptr<Layer> _layer = std::make_shared<Max_Pooling_Layer>(layer);
+    this->_layers.push_back(_layer);
 }
 
 
-void Neural_Network::build_flatten_layer(const int channel_num,
-                                         const int height,
-                                         const int width) {
-
-    Flatten_Layer _layer;
-    _layer.build_layer(channel_num, height, width);
-    std::shared_ptr<Layer> layer = std::make_shared<Flatten_Layer>(_layer);
-    this->_layers.push_back(layer);
+void Neural_Network::add_layer(En_Tensor_Layer layer) {
+    std::shared_ptr<Layer> _layer = std::make_shared<En_Tensor_Layer>(layer);
+    this->_layers.push_back(_layer);
 }
 
 
-void Neural_Network::build_max_pooling_layer(const int channel_num,
-                                 const int filter_height, const int filter_width,
-                                 const int stlide_height, const int stlide_width,
-                                 const int padding_height, const int padding_width) {
-
-    Max_Pooling_Layer _layer;
-    _layer.build_layer(channel_num,
-                       filter_height, filter_width,
-                       stlide_height, stlide_width,
-                       padding_height, padding_width);
-    std::shared_ptr<Layer> layer = std::make_shared<Max_Pooling_Layer>(_layer);
-    this->_layers.push_back(layer);
-}
-
-
-void Neural_Network::build_outputLayer(const int class_num,
-                                       const function<MatrixXf(MatrixXf)> f,
-                                       const string loss_name) {
-
-    this->_class_num = class_num;
-    Output_Layer output_layer;
-    if ( loss_name == "mean_square_error" ) {
-        cout << "現在非対応です" << endl;
-        this->loss_func = mean_square_error;
-    } else if ( loss_name == "mean_cross_entropy" ) {
-        output_layer.build_layer(f, diff, this->_class_num);
-        this->loss_func = mean_cross_entropy;
-    } else {
-        cout << "現在、指定の損失関数はOutput_layerクラスでは利用できません。" << endl;
-        exit(1);
-    }
-
-    std::shared_ptr<Layer> _layer = std::make_shared<Output_Layer>(output_layer);
+void Neural_Network::add_layer(Flatten_Layer layer) {
+    std::shared_ptr<Layer> _layer = std::make_shared<Flatten_Layer>(layer);
     this->_layers.push_back(_layer);
 }
 

@@ -14,6 +14,7 @@
 #include "initialize.h"
 #include "my_math.h"
 #include "neural_network.h"
+#include "full_connect_layer.h"
 // #include "loss.h"
 // #include "train.h"
 // #include <pybind11/pybind11.h>
@@ -43,19 +44,19 @@ int main(void) {
 
     // Build a neural network archtecture.
     Neural_Network nn;
-    nn.build_en_tensor_layer(1, 28, 28);
-    nn.build_convolutionLayer(tanh_, tanh_d, 1, 5, 3, 3);
-    nn.build_max_pooling_layer(5, 3, 3);
-    nn.build_convolutionLayer(tanh_, tanh_d, 5, 2, 3, 3);
-    nn.build_max_pooling_layer(2, 3, 3);
-    nn.build_flatten_layer(2, 20, 20);
-    int W1_shape[2] = { 2*20*20, 500 };
-    nn.build_fullConnectedLayer(tanh_, tanh_d, W1_shape, true);
+    nn.add_layer( En_Tensor_Layer(1, 28, 28) );
+    nn.add_layer( Convolution_Layer(tanh_, tanh_d, 1, 2, 3, 3) );
+    nn.add_layer( Max_Pooling_Layer(2, 2, 2) );
+    nn.add_layer( Convolution_Layer(tanh_, tanh_d, 2, 2, 3, 3) );
+    nn.add_layer( Max_Pooling_Layer(2, 2, 2) );
+    nn.add_layer( Flatten_Layer(2, 22, 22) );
+    int W1_shape[2] = { 2*22*22, 500 };
+    nn.add_layer( FullConnect_Layer(tanh_, tanh_d, W1_shape) );
     int W2_shape[2] = { 500, 200 };
-    nn.build_fullConnectedLayer(tanh_, tanh_d, W2_shape, true);
+    nn.add_layer( FullConnect_Layer(tanh_, tanh_d, W2_shape) );
     int W3_shape[2] = { 200, 10 };
-    nn.build_fullConnectedLayer(identity, identity_d, W3_shape, true);
-    nn.build_outputLayer(10, softmax, "mean_cross_entropy");
+    nn.add_layer( FullConnect_Layer(identity, identity_d, W3_shape) );
+    nn.add_layer( Output_Layer(softmax, mean_cross_entropy, diff, 10) );
 
     nn.allocate_memory(mini_batch_size, 28*28);
 

@@ -17,6 +17,7 @@ using Eigen::ArrayXXf;
 using Eigen::pow;
 using Eigen::log;
 
+static const float PI = 3.14159265359;
 
 
 MatrixXf sigmoid(const MatrixXf m) {
@@ -196,14 +197,12 @@ MatrixXf elemntwiseProduct(const MatrixXf m1, const MatrixXf m2) {
 }
 
 
-vector<vector <MatrixXf> > uniform_rand(const int (&shape)[4], const float min, const float max,
-                                        const int seed=0) {
-    // set random seed
+int pop_seed(int seed=0) {
+    /*
+        Returns non-deterministic random number if seed is 0.
+        Otherwise, return the same number.
+    */
     int _seed;
-    if ( max - min <= 0.f ) {
-        cout << "minよりmaxの方が小さいです" << endl;
-        exit(1);
-    }
     if ( seed == 0 ) {
         std::random_device rnd;
         _seed = rnd();
@@ -211,9 +210,22 @@ vector<vector <MatrixXf> > uniform_rand(const int (&shape)[4], const float min, 
         _seed = seed;
     }
 
+    return _seed;
+}
+
+
+vector<vector <MatrixXf> > uniform_rand(const int (&shape)[4], const float min, const float max,
+                                        const int seed=0) {
+
+    if ( max - min <= 0.f ) {
+        cout << "minよりmaxの方が小さいです" << endl;
+        exit(1);
+    }
+
     // Mel sense twister
+    int _seed = pop_seed(seed);
     std::mt19937 mt(_seed);
-    std::uniform_int_distribution<float> gen_rand(min, max);
+    std::uniform_real_distribution<float> gen_rand(min, max);
 
     // allocate memory
     vector <vector <MatrixXf> > output;
@@ -258,5 +270,86 @@ MatrixXf uniform_rand(const int shape, const float min, const float max) {
     MatrixXf output = MatrixXf::Random(1, shape);
     return (((output.array() / 2.f) + 0.5f) * (max - min) + min).matrix();
 }
+
+
+vector< vector<MatrixXf> > gauss_rand(const int (&shape)[4], const float mu, const float sgm,
+                                      const int seed=0) {
+    /*
+        Returns normal random number
+    */
+
+    // Mel sense twister
+    int _seed = pop_seed(seed);
+    std::mt19937 mt(_seed);
+    std::normal_distribution<float> gen_rand(mu, sgm);
+
+    // allocate memory
+    vector< vector<MatrixXf> > output;
+
+    // set random value
+    for ( int i = 0; i < shape[0]; i++ ) {
+        vector<MatrixXf> tmp;
+        for ( int j = 0; j < shape[1]; j++ ) {
+            tmp.push_back(MatrixXf::Zero(shape[2], shape[3]));
+            for ( int k = 0; k < shape[2]; k++ ) {
+                for ( int l = 0; l < shape[3]; l++ ) {
+                    tmp[j](k, l) = gen_rand(mt);
+                }
+            }
+        }
+        output.push_back(tmp);
+    }
+
+    return output;
+}
+
+
+MatrixXf gauss_rand(const int (&shape)[2], const float mu, const float sgm,
+                                      const int seed=0) {
+    /*
+        Returns normal random number
+    */
+
+    // Mel sense twister
+    int _seed = pop_seed(seed);
+    std::mt19937 mt(_seed);
+    std::normal_distribution<float> gen_rand(mu, sgm);
+
+    // allocate memory
+    MatrixXf output(shape[0], shape[1]);
+
+    // set random value
+    for ( int i = 0; i < shape[0]; i++ ) {
+        for ( int j = 0; j < shape[1]; j++ ) {
+            output(i, j) = gen_rand(mt);
+        }
+    }
+
+    return output;
+}
+
+
+MatrixXf gauss_rand(const int shape, const float mu, const float sgm,
+                                      const int seed=0) {
+    /*
+        Returns normal random number
+    */
+
+    // Mel sense twister
+    int _seed = pop_seed(seed);
+    std::mt19937 mt(_seed);
+    std::normal_distribution<float> gen_rand(mu, sgm);
+
+    // allocate memory
+    MatrixXf output(1, shape);
+
+    // set random value
+    for ( int i = 0; i < shape; i++ ) {
+        output(0, i) = gen_rand(mt);
+    }
+
+    return output;
+}
+
 
 #endif // INCLUDE_my_math_h_

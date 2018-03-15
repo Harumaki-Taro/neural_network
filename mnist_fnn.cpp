@@ -37,19 +37,20 @@ int main(void) {
 
     // Define learning parameters.
     MatrixXf pred;
-    float eps = 0.03;
+    float eps = 0.01;
     unsigned int mini_batch_size = 32;
-    unsigned int epoch = 10000;
+    unsigned int epoch = 50000;
 
     // Build a neural network archtecture.
     Neural_Network nn;
     int W1_shape[2] = { 784, 500 };
-    nn.build_fullConnectedLayer(tanh_, tanh_d, W1_shape, true);
+    nn.add_layer( FullConnect_Layer(tanh_, tanh_d, W1_shape) );
     int W2_shape[2] = { 500, 200 };
-    nn.build_fullConnectedLayer(tanh_, tanh_d, W2_shape, true);
+    nn.add_layer( FullConnect_Layer(tanh_, tanh_d, W2_shape) );
     int W3_shape[2] = { 200, 10 };
-    nn.build_fullConnectedLayer(identity, identity_d, W3_shape, true);
-    nn.build_outputLayer(10, softmax, "mean_cross_entropy");
+    nn.add_layer( FullConnect_Layer(identity, identity_d, W3_shape) );
+    nn.add_layer( Output_Layer(softmax, mean_cross_entropy, diff, 10) );
+
     nn.allocate_memory(mini_batch_size, 28*28);
 
     // Define loss function and optimizer.
@@ -126,10 +127,9 @@ int main(void) {
         }
         end = std::chrono::system_clock::now();  // 計測終了時間
 
-        if ( i % 50 == 0 ) {
+        if ( i % 100 == 0 ) {
             double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count(); //処理に要した時間をミリ秒に変換
-            cout << i << endl;
-            cout << "loss: " << nn.calc_loss_with_prev_pred(mini_batch.label) << "\t(time: " << elapsed << "msec / example)" << endl;
+            cout << "step: " << i << "  " << "loss: " << nn.calc_loss_with_prev_pred(mini_batch.label) << " (" << elapsed << " msec/example)" << endl;
         }
 
         if ( i + 1 == epoch ) {

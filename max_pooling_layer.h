@@ -21,12 +21,14 @@ public:
     virtual void forwardprop(const vector< vector<MatrixXf> > X);
     virtual void calc_delta(const vector<vector<MatrixXf> > next_delta,
                             const vector<vector<MatrixXf> > prev_activated);
-    void build_layer(const int channel_num,
-                     const int filter_height, const int filter_width,
-                     const int stlide_height=1, const int stlide_width=1,
-                     const int padding_height=0, const int padding_width=0);
     virtual void allocate_memory(const int batch_size, const int prev_height, const int prev_width);
 
+    Max_Pooling_Layer(const int channel_num,
+                      const int filter_height, const int filter_width,
+                      const int stlide_height=1, const int stlide_width=1,
+                      const int padding_height=0, const int padding_width=0);
+
+    // getter
     virtual bool get_trainable(void);
     virtual string get_type(void);
     virtual int get_batch_size(void);
@@ -58,6 +60,20 @@ private:
     int padding_width;
     vector< vector<MatrixXf> > delta;
 };
+
+
+Max_Pooling_Layer::Max_Pooling_Layer(const int channel_num,
+                                     const int filter_height, const int filter_width,
+                                     const int stlide_height, const int stlide_width,
+                                     const int padding_height, const int padding_width) {
+    this->channel_num = channel_num;
+    this->filter_height = filter_height;
+    this->filter_width = filter_width;
+    this->stlide_height = stlide_height;
+    this->stlide_width = stlide_width;
+    this->padding_height = padding_height;
+    this->padding_width = padding_width;
+}
 
 
 void Max_Pooling_Layer::forwardprop(const vector< vector<MatrixXf> > X) {
@@ -113,20 +129,6 @@ void Max_Pooling_Layer::calc_delta(const vector<vector<MatrixXf> > next_delta,
             }
         }
     }
-}
-
-
-void Max_Pooling_Layer::build_layer(const int channel_num,
-                                    const int filter_height, const int filter_width,
-                                    const int stlide_height, const int stlide_width,
-                                    const int padding_height, const int padding_width) {
-    this->channel_num = channel_num;
-    this->filter_height = filter_height;
-    this->filter_width = filter_width;
-    this->stlide_height = stlide_height;
-    this->stlide_width = stlide_width;
-    this->padding_height = padding_height;
-    this->padding_width = padding_width;
 }
 
 

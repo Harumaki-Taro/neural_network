@@ -24,17 +24,12 @@ public:
                             const vector<vector <MatrixXf> > next_bW,
                             const int nextW_rows, const int next_W_cols);
     virtual void calc_differential(const vector<vector <MatrixXf> > prev_activated);
-
-    void build_layer(const function<MatrixXf(MatrixXf)> f,
-                     const function<MatrixXf(MatrixXf)> d_f,
-                     const MatrixXf W, const MatrixXf b,
-                     const bool use_bias);
-    void build_layer(const function<MatrixXf(MatrixXf)> f,
-                     const function<MatrixXf(MatrixXf)> d_f,
-                     const int (&W_shape)[2], const bool use_bias=true,
-                     const float W_min=-0.01, const float W_max=0.01,
-                     const float b_min=-0.01, const float b_max=0.01);
     virtual void allocate_memory(const int batch_size);
+
+    FullConnect_Layer(const function<MatrixXf(MatrixXf)> f,
+                      const function<MatrixXf(MatrixXf)> d_f,
+                      const int (&W_shape)[2], const string initializer="Xavier",
+                      const bool use_bias=true);
 
     // getter
     virtual bool get_trainable(void);
@@ -79,7 +74,29 @@ private:
     // Storage during learning
     vector<vector <MatrixXf> > _input;
     vector<vector <MatrixXf> > _preActivate;
+
+    void build_layer(const function<MatrixXf(MatrixXf)> f,
+                     const function<MatrixXf(MatrixXf)> d_f,
+                     const MatrixXf W, const MatrixXf b,
+                     const bool use_bias);
+    void build_layer(const function<MatrixXf(MatrixXf)> f,
+                     const function<MatrixXf(MatrixXf)> d_f,
+                     const int (&W_shape)[2], const string initializer="Xavier",
+                     const bool use_bias=true,
+                     const float W_min=-0.01, const float W_max=0.01,
+                     const float b_min=-0.01, const float b_max=0.01);
 };
+
+
+FullConnect_Layer::FullConnect_Layer(const function<MatrixXf(MatrixXf)> f,
+                                     const function<MatrixXf(MatrixXf)> d_f,
+                                     const int (&W_shape)[2], const string initializer,
+                                     const bool use_bias) {
+    this->build_layer(f,
+                      d_f,
+                      W_shape, initializer,
+                      use_bias);
+}
 
 
 void FullConnect_Layer::forwardprop(const vector<vector <MatrixXf> > X) {
@@ -119,12 +136,26 @@ void FullConnect_Layer::build_layer(const function<MatrixXf(MatrixXf)> f,
 
 void FullConnect_Layer::build_layer(const function<MatrixXf(MatrixXf)> f,
                                     const function<MatrixXf(MatrixXf)> d_f,
-                                    const int (&W_shape)[2], const bool use_bias,
+                                    const int (&W_shape)[2], const string initializer,
+                                    const bool use_bias,
                                     const float W_min, const float W_max,
                                     const float b_min, const float b_max) {
+
+    MatrixXf W;
+    MatrixXf b;
     // Define weight and bias at random.
-    MatrixXf W = uniform_rand(W_shape, W_min, W_max);
-    MatrixXf b = uniform_rand(W_shape[1], b_min, b_max);
+    if ( initializer == "Xavier" ) {
+        W = gauss_rand(W_shape, 0.f, sqrt(1.f/(W_shape[0]+1.f)));
+        b = gauss_rand(W_shape[1], 0.f, sqrt(1.f/(W_shape[0]+1.f)));
+    } else if ( initializer == "He" ) {
+        W = gauss_rand(W_shape, 0.f, sqrt(2.f/(W_shape[0]+1.f)));
+        b = gauss_rand(W_shape[1], 0.f, sqrt(2.f/(W_shape[0]+1.f)));
+    } else if ( initializer == "uniform" ) {
+        W = uniform_rand(W_shape, W_min, W_max);
+        b = uniform_rand(W_shape[1], b_min, b_max);
+    } else {
+        cout << "指定の活性化関数に対応していません" << endl;
+    }
 
     this->build_layer(f,
                       d_f,

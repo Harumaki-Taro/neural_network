@@ -20,9 +20,11 @@ class En_Tensor_Layer : public Layer {
 public:
     virtual void forwardprop(const vector< vector<MatrixXf> > X);
     virtual void calc_delta(const vector< vector<MatrixXf> > next_delta);
-    void build_layer(const int channel_num, const int height, const int width);
     virtual void allocate_memory(const int batch_size);
 
+    En_Tensor_Layer(const int channel_num, const int height, const int width);
+
+    // getter
     virtual bool get_trainable(void);
     virtual string get_type(void);
     virtual vector< vector<MatrixXf> > get_activated(void);
@@ -39,7 +41,15 @@ private:
 };
 
 
+En_Tensor_Layer::En_Tensor_Layer(const int channel_num, const int height, const int width) {
+    this->channel_num = channel_num;
+    this->output_height = height;
+    this->output_width = width;
+}
+
+
 void En_Tensor_Layer::forwardprop(const vector< vector<MatrixXf> > X) {
+    #pragma omp parallel for
     for ( int n = 0; n < this->batch_size; n++ ) {
         for ( int k = 0; k < this->channel_num; k++ ) {
             for ( int h = 0; h < this->output_height; h++ ) {
@@ -54,6 +64,7 @@ void En_Tensor_Layer::forwardprop(const vector< vector<MatrixXf> > X) {
 
 
 void En_Tensor_Layer::calc_delta(const vector< vector<MatrixXf> > next_delta) {
+    #pragma omp parallel for
     for ( int n = 0; n < this->batch_size; n++ ) {
         for ( int k = 0; k <this->channel_num; k++ ) {
             for ( int p = 0; p < this->output_height; p++ ) {
@@ -64,13 +75,6 @@ void En_Tensor_Layer::calc_delta(const vector< vector<MatrixXf> > next_delta) {
             }
         }
     }
-}
-
-
-void En_Tensor_Layer::build_layer(const int channel_num, const int height, const int width) {
-    this->channel_num = channel_num;
-    this->output_height = height;
-    this->output_width = width;
 }
 
 

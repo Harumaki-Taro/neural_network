@@ -22,15 +22,15 @@ public:
     virtual void calc_differential(const vector< vector<MatrixXf> > prev_activated,
                                    const vector< vector<MatrixXf> > next_delta);
     virtual void calc_delta(const vector< vector<MatrixXf> > next_delta);
-    void build_layer(const function<MatrixXf(MatrixXf)> f,
-                     const function<MatrixXf(MatrixXf)> d_f,
-                     const int prev_ch, const int ch,
-                     const int filter_height, const int filter_width,
-                     const int stlide_height=1, const int stlide_width=1,
-                     const int padding_height=0, const int padding_width=0,
-                     const float W_min=-0.1, const float W_max=0.1,
-                     const float b_min=-0.1, const float b_max=0.1);
     virtual void allocate_memory(const int batch_size, const int prev_height, const int prev_width);
+
+    Convolution_Layer(const function<MatrixXf(MatrixXf)> f,
+                      const function<MatrixXf(MatrixXf)> d_f,
+                      const int prev_ch, const int ch,
+                      const int filter_height, const int filter_width,
+                      const int stlide_height=1, const int stlide_width=1,
+                      const int padding_height=0, const int padding_width=0,
+                      const string initializer="Xavier");
 
     // getter
     virtual bool get_trainable(void);
@@ -87,12 +87,41 @@ private:
     int input_width;
     int output_height;
     int output_width;
+    string initializer;
     function<MatrixXf(MatrixXf)> f;
     function<MatrixXf(MatrixXf)> d_f;
     vector< vector<MatrixXf> > preActivate;
     // Storage during learning
     MatrixXf _preActivate;
 };
+
+
+// NOTE: Wの初期化どうしよう問題
+// HeやXavierのせいで一旦allocate_memoryに行ってしまったが、これだと一様分布で初期化できなくなってしまう。
+Convolution_Layer::Convolution_Layer(const function<MatrixXf(MatrixXf)> f,
+                                     const function<MatrixXf(MatrixXf)> d_f,
+                                     const int prev_ch, const int ch,
+                                     const int filter_height, const int filter_width,
+                                     const int stlide_height, const int stlide_width,
+                                     const int padding_height, const int padding_width,
+                                     const string initializer) {
+    /*
+        W[channel, prev_channel, row, col]
+        use bias common to each unit for each filter
+    */
+    this->W_shape[0] = ch; this->W_shape[1] = prev_ch; this->W_shape[2] = filter_height; this->W_shape[3] = filter_width;
+    this->channel_num = ch;
+    this->prev_channel_num = prev_ch;
+    this->filter_height = filter_height;
+    this->filter_width = filter_width;
+    this->stlide_height = stlide_height;
+    this->stlide_width = stlide_width;
+    this->padding_height = padding_height;
+    this->padding_width = padding_width;
+    this->initializer = initializer;
+    this->f = f;
+    this->d_f = d_f;
+}
 
 
 void Convolution_Layer::forwardprop(const vector< vector<MatrixXf> > X) {
@@ -194,45 +223,24 @@ void Convolution_Layer::calc_differential(const vector< vector<MatrixXf> > prev_
 }
 
 
-void Convolution_Layer::build_layer(const function<MatrixXf(MatrixXf)> f,
-                                    const function<MatrixXf(MatrixXf)> d_f,
-                                    const int prev_ch, const int ch,
-                                    const int filter_height, const int filter_width,
-                                    const int stlide_height, const int stlide_width,
-                                    const int padding_height, const int padding_width,
-                                    const float W_min, const float W_max,
-                                    const float b_min, const float b_max) {
-    /*
-        W[channel, prev_channel, row, col]
-        use bias common to each unit for each filter
-    */
-    this->W_shape[0] = ch; this->W_shape[1] = prev_ch; this->W_shape[2] = filter_height; this->W_shape[3] = filter_width;
-    this->channel_num = ch;
-    this->prev_channel_num = prev_ch;
-    this->filter_height = filter_height;
-    this->filter_width = filter_width;
-    this->stlide_height = stlide_height;
-    this->stlide_width = stlide_width;
-    this->padding_height = padding_height;
-    this->padding_width = padding_width;
-
-    // Define weight and bias at random.
-    vector<vector <MatrixXf> > W = uniform_rand(this->W_shape, W_min, W_max);
-    this->W = W;
-
-    this->b = uniform_rand(this->channel_num, b_min, b_max);
-
-    this->f = f;
-    this->d_f = d_f;
-}
-
-
 void Convolution_Layer::allocate_memory(const int batch_size, const int prev_height, const int prev_width) {
     this->batch_size = batch_size;
     this->input_height = prev_height;
     this->input_width = prev_width;
     this->output_height = ceil((prev_height - this->filter_height + 1 + 2 * this->padding_height) / this->stlide_height);
     this->output_width = ceil((prev_width - this->filter_width + 1 + 2 * this->padding_width) / this->stlide_width);
+
+    // Define weight and bias at random.
+    if ( initializer == "Xavier" ) {
+        this->W = gauss_rand(W_shape, 0.f, sqrt(1.f/(this->input_height*this->input_width*this->prev_channel_num)));
+        this->b = gauss_rand(this->channel_num, 0.f, sqrt(1.f/(this->input_height*this->input_width*this->prev_channel_num)));
+    } else if ( initializer == "He" ) {
+        this->W = gauss_rand(W_shape, 0.f, sqrt(2.f/(this->input_height*this->input_width*this->prev_channel_num)));
+        this->b = gauss_rand(this->channel_num, 0.f, sqrt(2.f/(this->input_height*this->input_width*this->prev_channel_num)));
+    } else if ( initializer == "uniform" ) {
+        this->W = uniform_rand(this->W_shape, -0.01, 0.01);
+        this->b = uniform_rand(this->channel_num, -0.01, 0.01);
+    }
 
     // preActivate & activated
     for ( int i = 0; i < this->batch_size; i++ ) {
