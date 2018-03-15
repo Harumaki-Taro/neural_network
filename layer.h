@@ -23,6 +23,8 @@ public:
     virtual void calc_delta(const MatrixXf, const MatrixXf) { cout << "使用禁止c" << endl; exit(1); }
     virtual void calc_delta(const vector< vector<MatrixXf> > next_delta) { cout << "使用禁止c2" << endl; exit(1); }
     virtual void calc_delta(const MatrixXf next_delta) { cout << "使用禁止c3" << endl; exit(1); }
+    virtual void calc_delta(const vector<vector<MatrixXf> > next_delta,
+                            const vector<vector<MatrixXf> > prev_activated) { cout << "使用禁止c4" << endl; exit(1); }
     virtual void calc_differential(MatrixXf) { cout << "使用禁止d" << endl; exit(1); }
     virtual void calc_differential(const vector< vector<MatrixXf> > prev_activated) { cout << "使用禁止d2" << endl; exit(1); }
     virtual void calc_differential(const vector< vector<MatrixXf> > prev_activated,
@@ -48,6 +50,10 @@ public:
                              const float W_min, const float W_max,
                              const float b_min, const float b_max) { cout << "使用禁止f2" << endl; exit(1); }
     virtual void build_layer(const int channel_num, const int height, const int width) { cout << "使用禁止f3" << endl; exit(1); }
+    // virtual void build_layer(const int channel_num,
+    //                          const int filter_height, const int filter_width,
+    //                          const int stlide_height=1, const int stlide_width=1,
+    //                          const int padding_height=0, const int padding_width=0) { cout << "使用禁止f4" << endl; exit(1); }
     virtual void allocate_memory(const int batch_size) { cout << "使用禁止g" << endl; exit(1); }
     // virtual void allocate_memory(const int batch_size) { cout << "使用禁止h" << endl; exit(1); }
     virtual void allocate_memory(const int batch_size,

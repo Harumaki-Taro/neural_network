@@ -152,7 +152,7 @@ void Convolution_Layer::calc_delta(const vector< vector<MatrixXf> > next_delta) 
                                 s = w - q * this->stlide_width + this->padding_width;
                                 // cout << n << " " << c << " " << h << " " << w << " " << k << " " << p << " " << q << " " << c << " " << r << " " << s << endl;
                                 this->delta[n][c](h, w)
-                                    = next_delta[n][k](p, q) * this->_d_f[n][k](p, q) * W[k][c](r, s);
+                                    += next_delta[n][k](p, q) * this->_d_f[n][k](p, q) * W[k][c](r, s);
                             }
                         }
                     }
@@ -165,21 +165,6 @@ void Convolution_Layer::calc_delta(const vector< vector<MatrixXf> > next_delta) 
 
 void Convolution_Layer::calc_differential(const vector< vector<MatrixXf> > prev_activated,
                                           const vector< vector<MatrixXf> > next_delta) {
-    // dE_db
-    // #pragma omp parallel for
-    // for ( int k = 0; k < this->channel_num; k++ ) {
-    //     this->dE_db(0, k) = 0.f;
-    //     for ( int n = 0; n < this->batch_size; n++ ) {
-    //         for ( int p = 0; p < this->output_height; p++ ) {
-    //             for ( int q = 0; q < this->output_width; q++ ) {
-    //                 this->dE_db(0, k) += next_delta[n][k](p, q);
-    //             }
-    //         }
-    //     }
-    // }
-    // this->dE_db /= (float)this->batch_size;
-    // cout << "ggg" << endl;
-
     // W
     #pragma omp parallel for
     for ( int k = 0; k < this->channel_num; k++ ) {
@@ -195,7 +180,7 @@ void Convolution_Layer::calc_differential(const vector< vector<MatrixXf> > prev_
                             w = q * this->stlide_width + s - this->padding_width;
                             for ( int p = 0; p < this->output_width; p++ ) {
                                 h = p * this->stlide_height + r - this->padding_height;
-                                this->dE_dW[k][c](r, s) += next_delta[n][k](q, p) * prev_activated[n][c](h, w);
+                                this->dE_dW[k][c](r, s) += next_delta[n][k](p, q) * prev_activated[n][c](h, w);
                                 this->dE_db(0, k) += next_delta[n][k](p, q);
                             }
                         }
