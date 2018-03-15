@@ -29,31 +29,31 @@ public:
     virtual void calc_differential(const vector< vector<MatrixXf> > prev_activated) { cout << "使用禁止d2" << endl; exit(1); }
     virtual void calc_differential(const vector< vector<MatrixXf> > prev_activated,
                                    const vector< vector<MatrixXf> > next_delta) { cout << "使用禁止d3" << endl; exit(1); }
-    virtual void build_layer(const function<MatrixXf(MatrixXf)> f,
-                             const function<MatrixXf(MatrixXf)> d_f,
-                             const MatrixXf W, const MatrixXf b,
-                             const bool use_bias) { cout << "使用禁止e" << endl; exit(1); }
-    virtual void build_layer(const function<MatrixXf(MatrixXf)> f,
-                             const function<MatrixXf(MatrixXf)> d_f,
-                             const int (&W_shape)[2], const bool use_bias=true,
-                             const float W_min=-1.f, const float W_max=1.f,
-                             const float b_min=-1.f, const float b_max=1.f) { cout << "使用禁止e2" << endl; exit(1); }
-    virtual void build_layer(const function<MatrixXf(MatrixXf)> f,
-                             const function<MatrixXf(MatrixXf, MatrixXf)> delta_f,
-                             const int class_num) { cout << "使用禁止f" << endl; exit(1); }
-    virtual void build_layer(const function<MatrixXf(MatrixXf)> f,
-                             const function<MatrixXf(MatrixXf)> d_f,
-                             const int prev_ch, const int ch,
-                             const int filter_height, const int filter_width,
-                             const int stlide_height, const int stlide_width,
-                             const int padding_height, const int padding_width,
-                             const float W_min, const float W_max,
-                             const float b_min, const float b_max) { cout << "使用禁止f2" << endl; exit(1); }
-    virtual void build_layer(const int channel_num, const int height, const int width) { cout << "使用禁止f3" << endl; exit(1); }
+    // virtual void build_layer(const function<MatrixXf(MatrixXf)> f,
+    //                          const function<MatrixXf(MatrixXf)> d_f,
+    //                          const MatrixXf W, const MatrixXf b,
+    //                          const bool use_bias) { cout << "使用禁止e" << endl; exit(1); }
+    // virtual void build_layer(const function<MatrixXf(MatrixXf)> f,
+    //                          const function<MatrixXf(MatrixXf)> d_f,
+    //                          const int (&W_shape)[2], const bool use_bias=true,
+    //                          const float W_min=-1.f, const float W_max=1.f,
+    //                          const float b_min=-1.f, const float b_max=1.f) { cout << "使用禁止e2" << endl; exit(1); }
+    // virtual void build_layer(const function<MatrixXf(MatrixXf)> f,
+    //                          const function<MatrixXf(MatrixXf, MatrixXf)> delta_f,
+    //                          const int class_num) { cout << "使用禁止f" << endl; exit(1); }
+    // virtual void build_layer(const function<MatrixXf(MatrixXf)> f,
+    //                          const function<MatrixXf(MatrixXf)> d_f,
+    //                          const int prev_ch, const int ch,
+    //                          const int filter_height, const int filter_width,
+    //                          const int stlide_height, const int stlide_width,
+    //                          const int padding_height, const int padding_width,
+    //                          const float W_min, const float W_max,
+    //                          const float b_min, const float b_max) { cout << "使用禁止f2" << endl; exit(1); }
     // virtual void build_layer(const int channel_num,
     //                          const int filter_height, const int filter_width,
     //                          const int stlide_height=1, const int stlide_width=1,
     //                          const int padding_height=0, const int padding_width=0) { cout << "使用禁止f4" << endl; exit(1); }
+    // virtual void build_layer(const int channel_num, const int height, const int width) { cout << "使用禁止f3" << endl; exit(1); }
     virtual void allocate_memory(const int batch_size) { cout << "使用禁止g" << endl; exit(1); }
     // virtual void allocate_memory(const int batch_size) { cout << "使用禁止h" << endl; exit(1); }
     virtual void allocate_memory(const int batch_size,

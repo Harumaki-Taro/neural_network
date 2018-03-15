@@ -13,6 +13,7 @@
 #include "convolution_layer.h"
 #include "en_tensor_layer.h"
 #include "flatten_layer.h"
+#include "max_pooling_layer.h"
 #include "input_layer.h"
 #include "output_layer.h"
 #include "my_math.h"
@@ -53,6 +54,10 @@ public:
                                 const float b_min=-0.1, const float b_max=0.1);
     void build_en_tensor_layer(const int channel_num, const int height, const int width);
     void build_flatten_layer(const int channel_num, const int height, const int width);
+    void build_max_pooling_layer(const int channel_num,
+                                 const int filter_height, const int filter_width,
+                                 const int stlide_height=1, const int stlide_width=1,
+                                 const int padding_height=0, const int padding_width=0);
     void build_outputLayer(const int class_num,
                            const function<MatrixXf(MatrixXf)> f,
                            const string loss_name);
@@ -104,8 +109,9 @@ void Neural_Network::build_fullConnectedLayer(const function<MatrixXf(MatrixXf)>
                                               const MatrixXf W, const MatrixXf b,
                                               const bool use_bias) {
 
-    shared_ptr<Layer> layer( new FullConnect_Layer() );
-    layer->build_layer(f, d_f, W, b, use_bias);
+    FullConnect_Layer _layer;
+    _layer.build_layer(f, d_f, W, b, use_bias);
+    std::shared_ptr<Layer> layer = std::make_shared<FullConnect_Layer>(_layer);
     this->_layers.push_back(layer);
 }
 
@@ -116,8 +122,9 @@ void Neural_Network::build_fullConnectedLayer(const function<MatrixXf(MatrixXf)>
                                               const float W_min, const float W_max,
                                               const float b_min, const float b_max) {
 
-    shared_ptr<Layer> layer( new FullConnect_Layer() );
-    layer->build_layer(f, d_f, W_shape, use_bias, W_min, W_max, b_min, b_max);
+    FullConnect_Layer _layer;
+    _layer.build_layer(f, d_f, W_shape, use_bias, W_min, W_max, b_min, b_max);
+    std::shared_ptr<Layer> layer = std::make_shared<FullConnect_Layer>(_layer);
     this->_layers.push_back(layer);
 }
 
@@ -131,8 +138,8 @@ void Neural_Network::build_convolutionLayer(const function<MatrixXf(MatrixXf)> f
                                             const float W_min, const float W_max,
                                             const float b_min, const float b_max) {
 
-    shared_ptr<Layer> layer( new Convolution_Layer() );
-    layer->build_layer(f,
+    Convolution_Layer _layer;
+    _layer.build_layer(f,
                        d_f,
                        prev_ch, ch,
                        filter_height, filter_width,
@@ -140,6 +147,7 @@ void Neural_Network::build_convolutionLayer(const function<MatrixXf(MatrixXf)> f
                        padding_height, padding_width,
                        W_min, W_max,
                        b_min, b_max);
+    std::shared_ptr<Layer> layer = std::make_shared<Convolution_Layer>(_layer);
     this->_layers.push_back(layer);
 }
 
@@ -148,8 +156,9 @@ void Neural_Network::build_en_tensor_layer(const int channel_num,
                                            const int height,
                                            const int width) {
 
-    shared_ptr<Layer> layer( new En_Tensor_Layer() );
-    layer->build_layer(channel_num, height, width);
+    En_Tensor_Layer _layer;
+    _layer.build_layer(channel_num, height, width);
+    std::shared_ptr<Layer> layer = std::make_shared<En_Tensor_Layer>(_layer);
     this->_layers.push_back(layer);
 }
 
@@ -157,8 +166,25 @@ void Neural_Network::build_en_tensor_layer(const int channel_num,
 void Neural_Network::build_flatten_layer(const int channel_num,
                                          const int height,
                                          const int width) {
-    shared_ptr<Layer> layer( new Flatten_Layer() );
-    layer->build_layer(channel_num, height, width);
+
+    Flatten_Layer _layer;
+    _layer.build_layer(channel_num, height, width);
+    std::shared_ptr<Layer> layer = std::make_shared<Flatten_Layer>(_layer);
+    this->_layers.push_back(layer);
+}
+
+
+void Neural_Network::build_max_pooling_layer(const int channel_num,
+                                 const int filter_height, const int filter_width,
+                                 const int stlide_height, const int stlide_width,
+                                 const int padding_height, const int padding_width) {
+
+    Max_Pooling_Layer _layer;
+    _layer.build_layer(channel_num,
+                       filter_height, filter_width,
+                       stlide_height, stlide_width,
+                       padding_height, padding_width);
+    std::shared_ptr<Layer> layer = std::make_shared<Max_Pooling_Layer>(_layer);
     this->_layers.push_back(layer);
 }
 
@@ -166,19 +192,22 @@ void Neural_Network::build_flatten_layer(const int channel_num,
 void Neural_Network::build_outputLayer(const int class_num,
                                        const function<MatrixXf(MatrixXf)> f,
                                        const string loss_name) {
+
     this->_class_num = class_num;
-    shared_ptr<Layer> output_layer( new Output_Layer() );
+    Output_Layer output_layer;
     if ( loss_name == "mean_square_error" ) {
-        output_layer->build_layer(f, diff, this->_class_num);
+        cout << "現在非対応です" << endl;
         this->loss_func = mean_square_error;
     } else if ( loss_name == "mean_cross_entropy" ) {
-        output_layer->build_layer(f, diff, this->_class_num);
+        output_layer.build_layer(f, diff, this->_class_num);
         this->loss_func = mean_cross_entropy;
     } else {
         cout << "現在、指定の損失関数はOutput_layerクラスでは利用できません。" << endl;
         exit(1);
     }
-    this->_layers.push_back(output_layer);
+
+    std::shared_ptr<Layer> _layer = std::make_shared<Output_Layer>(output_layer);
+    this->_layers.push_back(_layer);
 }
 
 
@@ -241,16 +270,13 @@ void Neural_Network::backprop(const MatrixXf pred, const MatrixXf label) {
                                            this->_layers[i]->get_W_rows(),
                                            this->_layers[i]->get_W_cols());
         } else if ( this->_layers[i-1]->get_type() == "flatten_layer" ) {
-            cout << "flatten" << endl;
             this->_layers[i-1]->calc_delta(this->_layers[i]->get_delta(),
                                            this->_layers[i]->get_bW(),
                                            this->_layers[i]->get_W_rows(),
                                            this->_layers[i]->get_W_cols());
         } else if ( this->_layers[i-1]->get_type() == "en_tensor_layer" ) {
-            cout << "en_tensor" << endl;
             this->_layers[i-1]->calc_delta(this->_layers[i]->get_delta());
         } else if ( this->_layers[i-1]->get_type() == "convolution_layer" ) {
-            cout << "conv" << endl;
             this->_layers[i-1]->calc_delta(this->_layers[i]->get_delta());
         } else {
             cout << this->_layers[i-1]->get_type() << endl;
@@ -263,14 +289,12 @@ void Neural_Network::backprop(const MatrixXf pred, const MatrixXf label) {
     for ( int i = 0; i != (int)this->_layers.size(); i++ ) {
         if ( this->_layers[i]->get_trainable() ) {
             if ( this->_layers[i]->get_type() == "full_connect_layer" ) {
-                cout << "full_dE" << endl;
                 this->_layers[i]->calc_differential(this->_layers[i-1]->get_activated());
             } else if ( this->_layers[i]->get_type() == "flatten_layer" ) {
                 ;
             } else if ( this->_layers[i]->get_type() == "en_tensor_layer" ) {
                 ;
             } else if ( this->_layers[i]->get_type() == "convolution_layer" ) {
-                cout << "conv_dE" << endl;
                 this->_layers[i]->calc_differential(this->_layers[i-1]->get_activated(),
                                                     this->_layers[i+1]->get_delta());
             } else {

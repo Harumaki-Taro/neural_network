@@ -22,14 +22,14 @@ public:
     virtual void calc_differential(const vector< vector<MatrixXf> > prev_activated,
                                    const vector< vector<MatrixXf> > next_delta);
     virtual void calc_delta(const vector< vector<MatrixXf> > next_delta);
-    virtual void build_layer(const function<MatrixXf(MatrixXf)> f,
-                             const function<MatrixXf(MatrixXf)> d_f,
-                             const int prev_ch, const int ch,
-                             const int filter_height, const int filter_width,
-                             const int stlide_height=1, const int stlide_width=1,
-                             const int padding_height=0, const int padding_width=0,
-                             const float W_min=-0.1, const float W_max=0.1,
-                             const float b_min=-0.1, const float b_max=0.1);
+    void build_layer(const function<MatrixXf(MatrixXf)> f,
+                     const function<MatrixXf(MatrixXf)> d_f,
+                     const int prev_ch, const int ch,
+                     const int filter_height, const int filter_width,
+                     const int stlide_height=1, const int stlide_width=1,
+                     const int padding_height=0, const int padding_width=0,
+                     const float W_min=-0.1, const float W_max=0.1,
+                     const float b_min=-0.1, const float b_max=0.1);
     virtual void allocate_memory(const int batch_size, const int prev_height, const int prev_width);
 
     // getter

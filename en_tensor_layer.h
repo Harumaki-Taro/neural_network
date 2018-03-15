@@ -20,7 +20,7 @@ class En_Tensor_Layer : public Layer {
 public:
     virtual void forwardprop(const vector< vector<MatrixXf> > X);
     virtual void calc_delta(const vector< vector<MatrixXf> > next_delta);
-    virtual void build_layer(const int channel_num, const int height, const int width);
+    void build_layer(const int channel_num, const int height, const int width);
     virtual void allocate_memory(const int batch_size);
 
     virtual bool get_trainable(void);

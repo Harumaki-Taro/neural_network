@@ -8,4 +8,3 @@ test.*
 loss.h
 train.h
 sgd.h
-max_pooling_layer.h

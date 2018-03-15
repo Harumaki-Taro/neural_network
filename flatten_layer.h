@@ -22,7 +22,7 @@ public:
     virtual void calc_delta(const vector< vector<MatrixXf> > next_delta,
                             const vector< vector<MatrixXf> > next_bW,
                             const int next_W_rows, const int next_W_cols);
-    virtual void build_layer(const int channel_num, const int height, const int width);
+    void build_layer(const int channel_num, const int height, const int width);
     virtual void allocate_memory(const int batch_size);
 
     virtual bool get_trainable(void);

@@ -18,9 +18,9 @@ class Output_Layer : public Layer {
 public:
     virtual void forwardprop(const vector<vector <MatrixXf> > X);
     virtual void calc_delta(const MatrixXf pred, const MatrixXf label);
-    virtual void build_layer(const function<MatrixXf(MatrixXf)> f,
-                             const function<MatrixXf(MatrixXf, MatrixXf)> delta_f,
-                             const int class_num);
+    void build_layer(const function<MatrixXf(MatrixXf)> f,
+                     const function<MatrixXf(MatrixXf, MatrixXf)> delta_f,
+                     const int class_num);
     virtual void allocate_memory(int);
 
     // getter
