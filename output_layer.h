@@ -74,7 +74,7 @@ void Output_Layer::allocate_memory(const int batch_size) {
     this->batch_size = batch_size;
 
     this->delta.resize(1); this->delta[0].resize(1);
-    this->delta[0][0].resize(this->batch_size, this->_class_num);
+    this->delta[0][0].resize(this->_class_num, this->batch_size);
 
     this->_activated.resize(1); this->_activated[0].resize(1);
     this->_activated[0][0].resize(this->batch_size, this->_class_num);

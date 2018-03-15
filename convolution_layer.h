@@ -19,7 +19,8 @@ using std::shared_ptr;
 class Convolution_Layer : public Layer {
 public:
     virtual void forwardprop(const vector< vector<MatrixXf> > X);
-    virtual void calc_differential(const vector< vector<MatrixXf> > prev_activated);
+    virtual void calc_differential(const vector< vector<MatrixXf> > prev_activated,
+                                   const vector< vector<MatrixXf> > next_delta);
     virtual void calc_delta(const vector< vector<MatrixXf> > next_delta);
     virtual void build_layer(const function<MatrixXf(MatrixXf)> f,
                              const function<MatrixXf(MatrixXf)> d_f,
@@ -95,33 +96,27 @@ private:
 
 
 void Convolution_Layer::forwardprop(const vector< vector<MatrixXf> > X) {
-
-
-    // convolute
-    float h = 0.f;
-    float w = 0.f;
+    #pragma omp parallel for
     for ( int n = 0; n < this->batch_size; n++ ) {
+        int h = 0;
+        int w = 0;
         for ( int k = 0; k < this->channel_num; k++ ) {
+            // convolute
             for ( int p = 0; p < this->output_height; p++ ) {
                 for ( int q = 0; q < this->output_width; q++ ){
-                    this->preActivate[n][k](p, q) = this->b(1, k);
+                    this->preActivate[n][k](p, q) = this->b(0, k);
                     for ( int c = 0; c < this->prev_channel_num; c++ ) {
                         for ( int r = 0; r < this->filter_height; r++ ) {
-                            h = (p - 1) * this->stlide_height + r - this->padding_height;
+                            h = p * this->stlide_height + r - this->padding_height;
                             for ( int s = 0; s < this->filter_width; s++ ) {
-                                w = (q - 1) * this->stlide_width + s - this->padding_width;
+                                w = q * this->stlide_width + s - this->padding_width;
                                 this->preActivate[n][k](p, q) += X[n][c](h, w) * this->W[k][c](r, s);
                             }
                         }
                     }
                 }
             }
-        }
-    }
-
-    // activate
-    for ( int n = 0; n < this->batch_size; n++ ) {
-        for ( int k = 0; k < this->channel_num; k++ ) {
+            // activate
             this->_activated[n][k] = this->f(this->preActivate[n][k]);
         }
     }
@@ -129,33 +124,33 @@ void Convolution_Layer::forwardprop(const vector< vector<MatrixXf> > X) {
 
 
 void Convolution_Layer::calc_delta(const vector< vector<MatrixXf> > next_delta) {
-    int P_max = 0;
-    int P_min = 0;
-    int Q_max = 0;
-    int Q_min = 0;
-    int r = 0;
-    int s = 0;
-
+    #pragma omp parallel for
     for ( int n = 0; n < this->batch_size; n++ ) {
-        for ( int c = 0; c < this->channel_num; c++ ) {
+        int P_max = 0;
+        int P_min = 0;
+        int Q_max = 0;
+        int Q_min = 0;
+        int r = 0;
+        int s = 0;
+        for ( int c = 0; c < this->prev_channel_num; c++ ) {
             for ( int h = 0; h < this->input_height; h++ ) {
                 for ( int w = 0; w < this->input_width; w++ ) {
                     this->delta[n][c](h, w) = 0.f;
                     for ( int k = 0; k < this->channel_num; k++ ) {
                         this->_d_f[n][k] = this->d_f(this->preActivate[n][k]);
-
                         P_min = std::max(0,
-                            (int)ceil((h - this->filter_height + this->padding_height) / this->stlide_height + 1));
-                        P_max = std::min(this->output_height,
-                            (int)floor((h - 1 + this->padding_height) / this->stlide_height + 1));
+                            (int)ceil((h - this->filter_height + 1 + this->padding_height) / this->stlide_height));
+                        P_max = std::min(this->output_height-1,
+                            (int)floor((h + this->padding_height) / this->stlide_height));
                         for ( int p = P_min; p <= P_max; p++ ) {
+                            r = h - p * this->stlide_height + this->padding_height;
                             Q_min = std::max(0,
-                                (int)ceil((w - this->filter_width + this->padding_width) / this->stlide_width + 1));
-                            Q_max = std::min(this->output_width,
-                                (int)floor((h - 1 + this->padding_width) / this->stlide_width + 1));
+                                (int)ceil((w - this->filter_width + 1 + this->padding_width) / this->stlide_width));
+                            Q_max = std::min(this->output_width-1,
+                                (int)floor((w + this->padding_width) / this->stlide_width));
                             for ( int q = Q_min; q <= Q_max; q++ ) {
-                                r = h - (p - 1) * this->stlide_height + this->padding_height;
-                                s = w - (q - 1) * this->stlide_width + this->padding_width;
+                                s = w - q * this->stlide_width + this->padding_width;
+                                // cout << n << " " << c << " " << h << " " << w << " " << k << " " << p << " " << q << " " << c << " " << r << " " << s << endl;
                                 this->delta[n][c](h, w)
                                     = next_delta[n][k](p, q) * this->_d_f[n][k](p, q) * W[k][c](r, s);
                             }
@@ -168,34 +163,40 @@ void Convolution_Layer::calc_delta(const vector< vector<MatrixXf> > next_delta) 
 }
 
 
-void Convolution_Layer::calc_differential(const vector< vector<MatrixXf> > prev_activated) {
+void Convolution_Layer::calc_differential(const vector< vector<MatrixXf> > prev_activated,
+                                          const vector< vector<MatrixXf> > next_delta) {
     // dE_db
-    for ( int k = 0; k < this->channel_num; k++ ) {
-        this->dE_db(0, k) = 0.f;
-        for ( int n = 0; n < this->batch_size; n++ ) {
-            for ( int p = 0; p < this->output_height; p++ ) {
-                for ( int q = 0; q < this->output_width; q++ ) {
-                    this->dE_db(0, k) += this->delta[n][k](p, q);
-                }
-            }
-        }
-    }
-    this->dE_db /= (float)this->batch_size;
+    // #pragma omp parallel for
+    // for ( int k = 0; k < this->channel_num; k++ ) {
+    //     this->dE_db(0, k) = 0.f;
+    //     for ( int n = 0; n < this->batch_size; n++ ) {
+    //         for ( int p = 0; p < this->output_height; p++ ) {
+    //             for ( int q = 0; q < this->output_width; q++ ) {
+    //                 this->dE_db(0, k) += next_delta[n][k](p, q);
+    //             }
+    //         }
+    //     }
+    // }
+    // this->dE_db /= (float)this->batch_size;
+    // cout << "ggg" << endl;
 
     // W
-    float h = 0.f;
-    float w = 0.f;
+    #pragma omp parallel for
     for ( int k = 0; k < this->channel_num; k++ ) {
+        int h = 0;
+        int w = 0;
+        this->dE_db(0, k) = 0.f;
         for ( int c = 0; c < this->prev_channel_num; c++ ) {
             for ( int r = 0; r < this->filter_height; r++ ) {
                 for ( int s = 0; s < this->filter_width; s++ ) {
                     this->dE_dW[k][c](r, s) = 0.f;
                     for ( int n = 0; n < this->batch_size; n++ ) {
                         for ( int q = 0; q < this->output_height; q++ ) {
-                            w = (q - 1) * this->stlide_width + s - this->padding_width;
+                            w = q * this->stlide_width + s - this->padding_width;
                             for ( int p = 0; p < this->output_width; p++ ) {
-                                h = (p - 1) * this->stlide_height + r - this->padding_height;
-                                this->dE_dW[k][c](r, s) += this->delta[n][k](q, p) * prev_activated[n][c](h, w);
+                                h = p * this->stlide_height + r - this->padding_height;
+                                this->dE_dW[k][c](r, s) += next_delta[n][k](q, p) * prev_activated[n][c](h, w);
+                                this->dE_db(0, k) += next_delta[n][k](p, q);
                             }
                         }
                     }
@@ -204,6 +205,7 @@ void Convolution_Layer::calc_differential(const vector< vector<MatrixXf> > prev_
             this->dE_dW[k][c] /= (float)this->batch_size;
         }
     }
+    this->dE_db /= (float)this->batch_size;
 }
 
 
@@ -248,45 +250,45 @@ void Convolution_Layer::allocate_memory(const int batch_size, const int prev_hei
     this->output_width = ceil((prev_width - this->filter_width + 1 + 2 * this->padding_width) / this->stlide_width);
 
     // preActivate & activated
-    this->preActivate.resize(this->batch_size);
-    this->_activated.resize(this->batch_size);
-    for ( int i = 0; i < this->batch_size; i ++ ) {
-        this->preActivate.resize(this->channel_num);
-        this->_activated.resize(this->channel_num);
+    for ( int i = 0; i < this->batch_size; i++ ) {
+        vector<MatrixXf> tmp_pre_Activate;
+        vector<MatrixXf> tmp_activated;
         for ( int j = 0; j < this->channel_num; j++ ) {
-            this->preActivate[i][j] = MatrixXf::Zero(this->output_height, this->output_width);
-            this->_activated[i][j] = MatrixXf::Zero(this->output_height, this->output_width);
+            tmp_pre_Activate.push_back(MatrixXf::Zero(this->output_height, this->output_width));
+            tmp_activated.push_back(MatrixXf::Zero(this->output_height, this->output_width));
         }
+        this->preActivate.push_back(tmp_pre_Activate);
+        this->_activated.push_back(tmp_activated);
     }
 
     // delta
-    this->delta.resize(this->batch_size);
     for ( int i = 0; i < this->batch_size; i++ ) {
-        this->delta.resize(this->prev_channel_num);
+        vector<MatrixXf> tmp_delta;
         for ( int j = 0; j < this->prev_channel_num; j++ ) {
-            this->delta[i][j] = MatrixXf::Zero(this->input_height, this->input_width);
+            tmp_delta.push_back(MatrixXf::Zero(this->input_height, this->input_width));
         }
+        this->delta.push_back(tmp_delta);
     }
 
     // dE_db
     this->dE_db.resize(1, this->channel_num);
 
     // dE_dW
-    this->dE_dW.resize(this->channel_num);
     for ( int i = 0; i < this->channel_num; i++ ) {
-        this->dE_dW[i].resize(this->prev_channel_num);
+        vector<MatrixXf> tmp_dE_dW;
         for ( int j = 0; j < this->prev_channel_num; j++ ) {
-            this->dE_dW[i][j] = MatrixXf::Zero(this->filter_height, this->filter_width);
+            tmp_dE_dW.push_back(MatrixXf::Zero(this->filter_height, this->filter_width));
         }
+        this->dE_dW.push_back(tmp_dE_dW);
     }
 
     // _d_f (NOTE::活性化レイヤーを個別に作ったほうがいいかも)
-    this->_d_f.resize(this->batch_size);
-    for ( int n = 0; this->batch_size; n++ ) {
-        this->_d_f[n].resize(this->channel_num);
+    for ( int n = 0; n < this->batch_size; n++ ) {
+        vector<MatrixXf> tmp_d_f;
         for ( int c = 0; c < this->channel_num; c++ ) {
-            this->_d_f[n][c] = MatrixXf::Zero(this->output_height, this->output_width);
+            tmp_d_f.push_back(MatrixXf::Zero(this->output_height, this->output_width));
         }
+        this->_d_f.push_back(tmp_d_f);
     }
 }
 

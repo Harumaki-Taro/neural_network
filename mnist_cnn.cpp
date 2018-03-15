@@ -2,7 +2,7 @@
 //  mnist_cnn.cpp
 //
 // C++
-// clang-omp++ -O3 -mtune=native -std=c++14 -fopenmp mnist_fnn.cpp
+// clang-omp++ -O3 -mtune=native -std=c++14 -fopenmp mnist_cnn.cpp
 // Python
 // c++ -O3 -Wall -shared -std=c++11 -undefined dynamic_lookup `python3 -m pybind11 --includes` neural_network.cpp -o neural_network`python3-config --extension-suffix`
 //
@@ -45,9 +45,9 @@ int main(void) {
     Neural_Network nn;
     nn.build_en_tensor_layer(1, 28, 28);
     nn.build_convolutionLayer(tanh_, tanh_d, 1, 5, 3, 3);
-    nn.build_convolutionLayer(tanh_, tanh_d, 5, 3, 3, 3);
-    nn.build_en_tensor_layer(3, 24, 24);
-    int W1_shape[2] = { 576, 500 };
+    nn.build_convolutionLayer(tanh_, tanh_d, 5, 2, 3, 3);
+    nn.build_flatten_layer(2, 24, 24);
+    int W1_shape[2] = { 1152, 500 };
     nn.build_fullConnectedLayer(tanh_, tanh_d, W1_shape, true);
     int W2_shape[2] = { 500, 200 };
     nn.build_fullConnectedLayer(tanh_, tanh_d, W2_shape, true);
@@ -72,6 +72,7 @@ int main(void) {
         Mini_Batch mini_batch = mnist._train.randomPop(mini_batch_size);
         pred = nn.forwardprop(mini_batch.example);
         nn.backprop(pred, mini_batch.label);
+        cout << "fuga" << endl;
 
 
         vector<MatrixXf> prev_bW{MatrixXf::Zero(1,1), MatrixXf::Zero(785,200), MatrixXf::Zero(201,10), MatrixXf::Zero(1,1)};
@@ -133,7 +134,7 @@ int main(void) {
         }
         end = std::chrono::system_clock::now();  // 計測終了時間
 
-        if ( i % 50 == 0 ) {
+        if ( i % 1 == 0 ) {
             double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count(); //処理に要した時間をミリ秒に変換
             cout << i << endl;
             cout << "loss: " << nn.calc_loss_with_prev_pred(mini_batch.label) << "\t(time: " << elapsed << "msec / example)" << endl;

@@ -89,7 +89,8 @@ void FullConnect_Layer::forwardprop(const vector<vector <MatrixXf> > X) {
 }
 
 
-void FullConnect_Layer::calc_delta(const vector<vector <MatrixXf> > next_delta, const vector<vector <MatrixXf> > next_bW,
+void FullConnect_Layer::calc_delta(const vector<vector <MatrixXf> > next_delta,
+                                   const vector<vector <MatrixXf> > next_bW,
                                    const int next_W_rows, const int next_W_cols) {
     this->delta[0][0] = elemntwiseProduct(next_delta[0][0] * next_bW[0][0].block(1,0,next_W_rows,next_W_cols).transpose(),
                                     d_f(this->_activated[0][0]));

@@ -202,15 +202,14 @@ void Neural_Network::allocate_memory(const int batch_size, const int example_siz
             this->_layers[i]->allocate_memory(this->batch_size);
         } else if ( this->_layers[i]->get_type() == "convolution_layer" ) {
             this->_layers[i]->allocate_memory(this->batch_size,
-                                              this->_layers[i-1]->get_input_map_shape()[0],
-                                              this->_layers[i-1]->get_input_map_shape()[1]);
+                                              this->_layers[i-1]->get_output_map_shape()[0],
+                                              this->_layers[i-1]->get_output_map_shape()[1]);
         } else {
             cout << this->_layers[i]->get_type() << endl;
             cout << "Neural Networkクラスでは指定のレイヤークラスを利用できません。" << endl;
             exit(1);
         }
     }
-
     // output_layer
     this->_layers.back()->allocate_memory(this->batch_size);
 }
@@ -234,7 +233,6 @@ void Neural_Network::backprop(const MatrixXf pred, const MatrixXf label) {
     // output_layer
     this->_layers.back()->calc_delta(pred, label);
     this->_layers[this->_layer_num-2]->set_delta(this->_layers.back()->get_delta());
-
     // hidden_layer (delta)
     for ( int i = this->_layer_num-2; i != 1; --i ) {
         if ( this->_layers[i-1]->get_type() == "full_connect_layer" ) {
@@ -243,10 +241,16 @@ void Neural_Network::backprop(const MatrixXf pred, const MatrixXf label) {
                                            this->_layers[i]->get_W_rows(),
                                            this->_layers[i]->get_W_cols());
         } else if ( this->_layers[i-1]->get_type() == "flatten_layer" ) {
-            this->_layers[i-1]->calc_delta(this->_layers[i]->get_delta());
+            cout << "flatten" << endl;
+            this->_layers[i-1]->calc_delta(this->_layers[i]->get_delta(),
+                                           this->_layers[i]->get_bW(),
+                                           this->_layers[i]->get_W_rows(),
+                                           this->_layers[i]->get_W_cols());
         } else if ( this->_layers[i-1]->get_type() == "en_tensor_layer" ) {
+            cout << "en_tensor" << endl;
             this->_layers[i-1]->calc_delta(this->_layers[i]->get_delta());
         } else if ( this->_layers[i-1]->get_type() == "convolution_layer" ) {
+            cout << "conv" << endl;
             this->_layers[i-1]->calc_delta(this->_layers[i]->get_delta());
         } else {
             cout << this->_layers[i-1]->get_type() << endl;
@@ -259,13 +263,16 @@ void Neural_Network::backprop(const MatrixXf pred, const MatrixXf label) {
     for ( int i = 0; i != (int)this->_layers.size(); i++ ) {
         if ( this->_layers[i]->get_trainable() ) {
             if ( this->_layers[i]->get_type() == "full_connect_layer" ) {
+                cout << "full_dE" << endl;
                 this->_layers[i]->calc_differential(this->_layers[i-1]->get_activated());
             } else if ( this->_layers[i]->get_type() == "flatten_layer" ) {
                 ;
             } else if ( this->_layers[i]->get_type() == "en_tensor_layer" ) {
                 ;
             } else if ( this->_layers[i]->get_type() == "convolution_layer" ) {
-                this->_layers[i]->calc_differential(this->_layers[i-1]->get_activated());
+                cout << "conv_dE" << endl;
+                this->_layers[i]->calc_differential(this->_layers[i-1]->get_activated(),
+                                                    this->_layers[i+1]->get_delta());
             } else {
                 cout << this->_layers[i]->get_type() << endl;
                 cout << "(calc_dE)Neural Networkクラスでは指定のレイヤークラスを利用できません。" << endl;

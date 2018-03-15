@@ -25,6 +25,8 @@ public:
     virtual void calc_delta(const MatrixXf next_delta) { cout << "使用禁止c3" << endl; exit(1); }
     virtual void calc_differential(MatrixXf) { cout << "使用禁止d" << endl; exit(1); }
     virtual void calc_differential(const vector< vector<MatrixXf> > prev_activated) { cout << "使用禁止d2" << endl; exit(1); }
+    virtual void calc_differential(const vector< vector<MatrixXf> > prev_activated,
+                                   const vector< vector<MatrixXf> > next_delta) { cout << "使用禁止d3" << endl; exit(1); }
     virtual void build_layer(const function<MatrixXf(MatrixXf)> f,
                              const function<MatrixXf(MatrixXf)> d_f,
                              const MatrixXf W, const MatrixXf b,
