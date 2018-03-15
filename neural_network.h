@@ -233,6 +233,10 @@ void Neural_Network::allocate_memory(const int batch_size, const int example_siz
             this->_layers[i]->allocate_memory(this->batch_size,
                                               this->_layers[i-1]->get_output_map_shape()[0],
                                               this->_layers[i-1]->get_output_map_shape()[1]);
+        } else if ( this->_layers[i]->get_type() == "max_pooling_layer" ) {
+            this->_layers[i]->allocate_memory(this->batch_size,
+                                             this->_layers[i-1]->get_output_map_shape()[0],
+                                             this->_layers[i-1]->get_output_map_shape()[1]);
         } else {
             cout << this->_layers[i]->get_type() << endl;
             cout << "Neural Networkクラスでは指定のレイヤークラスを利用できません。" << endl;
@@ -278,8 +282,11 @@ void Neural_Network::backprop(const MatrixXf pred, const MatrixXf label) {
             this->_layers[i-1]->calc_delta(this->_layers[i]->get_delta());
         } else if ( this->_layers[i-1]->get_type() == "convolution_layer" ) {
             this->_layers[i-1]->calc_delta(this->_layers[i]->get_delta());
+        } else if ( this->_layers[i-1]->get_type() == "max_pooling_layer" ) {
+            this->_layers[i-1]->calc_delta(this->_layers[i]->get_delta(),
+                                           this->_layers[i-2]->get_activated());
         } else {
-            cout << this->_layers[i-1]->get_type() << endl;
+            cout << i << this->_layers[i-1]->get_type() << endl;
             cout << "(calc_delta)Neural Networkクラスでは指定のレイヤークラスを利用できません。" << endl;
             exit(1);
         }
@@ -297,8 +304,10 @@ void Neural_Network::backprop(const MatrixXf pred, const MatrixXf label) {
             } else if ( this->_layers[i]->get_type() == "convolution_layer" ) {
                 this->_layers[i]->calc_differential(this->_layers[i-1]->get_activated(),
                                                     this->_layers[i+1]->get_delta());
+            } else if ( this->_layers[i]->get_type() == "max_pooling_layer" ) {
+                ;
             } else {
-                cout << this->_layers[i]->get_type() << endl;
+                cout << i << this->_layers[i]->get_type() << endl;
                 cout << "(calc_dE)Neural Networkクラスでは指定のレイヤークラスを利用できません。" << endl;
                 exit(1);
             }

@@ -38,22 +38,25 @@ int main(void) {
     // Define learning parameters.
     MatrixXf pred;
     float eps = 0.01;
-    unsigned int mini_batch_size = 100;
+    unsigned int mini_batch_size = 32;
     unsigned int epoch = 10000;
 
     // Build a neural network archtecture.
     Neural_Network nn;
     nn.build_en_tensor_layer(1, 28, 28);
     nn.build_convolutionLayer(tanh_, tanh_d, 1, 5, 3, 3);
+    nn.build_max_pooling_layer(5, 3, 3);
     nn.build_convolutionLayer(tanh_, tanh_d, 5, 2, 3, 3);
-    nn.build_flatten_layer(2, 24, 24);
-    int W1_shape[2] = { 1152, 500 };
+    nn.build_max_pooling_layer(2, 3, 3);
+    nn.build_flatten_layer(2, 20, 20);
+    int W1_shape[2] = { 2*20*20, 500 };
     nn.build_fullConnectedLayer(tanh_, tanh_d, W1_shape, true);
     int W2_shape[2] = { 500, 200 };
     nn.build_fullConnectedLayer(tanh_, tanh_d, W2_shape, true);
     int W3_shape[2] = { 200, 10 };
     nn.build_fullConnectedLayer(identity, identity_d, W3_shape, true);
     nn.build_outputLayer(10, softmax, "mean_cross_entropy");
+
     nn.allocate_memory(mini_batch_size, 28*28);
 
     // Define loss function and optimizer.
@@ -72,8 +75,6 @@ int main(void) {
         Mini_Batch mini_batch = mnist._train.randomPop(mini_batch_size);
         pred = nn.forwardprop(mini_batch.example);
         nn.backprop(pred, mini_batch.label);
-        cout << "fuga" << endl;
-
 
         vector<MatrixXf> prev_bW{MatrixXf::Zero(1,1), MatrixXf::Zero(785,200), MatrixXf::Zero(201,10), MatrixXf::Zero(1,1)};
 
@@ -136,8 +137,7 @@ int main(void) {
 
         if ( i % 1 == 0 ) {
             double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count(); //処理に要した時間をミリ秒に変換
-            cout << i << endl;
-            cout << "loss: " << nn.calc_loss_with_prev_pred(mini_batch.label) << "\t(time: " << elapsed << "msec / example)" << endl;
+            cout << "step: " << i << "  " << "loss: " << nn.calc_loss_with_prev_pred(mini_batch.label) << " (" << elapsed << " msec/example)" << endl;
         }
 
         if ( i + 1 == epoch ) {

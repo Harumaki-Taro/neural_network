@@ -25,11 +25,14 @@ public:
                      const int filter_height, const int filter_width,
                      const int stlide_height=1, const int stlide_width=1,
                      const int padding_height=0, const int padding_width=0);
+    virtual void allocate_memory(const int batch_size, const int prev_height, const int prev_width);
 
     virtual bool get_trainable(void);
     virtual string get_type(void);
     virtual int get_batch_size(void);
     virtual int get_channel_num(void);
+    virtual vector<int> get_output_map_shape(void);
+    virtual vector<int> get_input_map_shape(void);
     vector<int> get_map_shape(void);
     vector<int> get_filter_shape(void);
     vector<int> get_stlide_shape(void);
@@ -40,11 +43,13 @@ public:
 
 private:
     bool trainable = false;
-    string type = "max_pooling";
+    string type = "max_pooling_layer";
     int batch_size;
     int channel_num;
-    int map_height;
-    int map_width;
+    int input_height;
+    int input_width;
+    int output_height;
+    int output_width;
     int filter_height;
     int filter_width;
     int stlide_height;
@@ -56,14 +61,16 @@ private:
 
 
 void Max_Pooling_Layer::forwardprop(const vector< vector<MatrixXf> > X) {
+    #pragma omp parallel for
     for ( int n = 0; n < this->batch_size; n++ ) {
-        for ( int c = 0; c < this->channel_num; c++ ) {
-            for ( int p = 0; p < this->map_height; p++ ) {
-                int H_min = p * this->stlide_height - this->padding_height;
-                for ( int q = 0; q < this->map_width; q++ ) {
-                    int W_min = p * this->stlide_width - this->padding_width;
-                    this->_activated[n][c](p, q)
-                        = X[n][c].block(H_min, W_min, this->filter_height, this->filter_width).maxCoeff();
+        int h = 0;
+        int w = 0;
+        for ( int k = 0; k < this->channel_num; k++ ) {
+            for ( int p = 0; p < this->output_height; p++ ) {
+                h = p * this->stlide_height - this->padding_height;
+                for ( int q = 0; q < this->output_width; q++ ){
+                    w = q * this->stlide_width - this->padding_width;
+                    this->_activated[n][k](p, q) = X[n][k].block(h, w, this->filter_height, this->filter_width).maxCoeff();
                 }
             }
         }
@@ -73,6 +80,7 @@ void Max_Pooling_Layer::forwardprop(const vector< vector<MatrixXf> > X) {
 
 void Max_Pooling_Layer::calc_delta(const vector<vector<MatrixXf> > next_delta,
                                    const vector<vector<MatrixXf> > prev_activated) {
+    #pragma omp parallel for
     for ( int n = 0; n < this->batch_size; n++ ) {
         int P_max = 0;
         int P_min = 0;
@@ -81,22 +89,21 @@ void Max_Pooling_Layer::calc_delta(const vector<vector<MatrixXf> > next_delta,
         int r = 0;
         int s = 0;
         for ( int c = 0; c < this->channel_num; c++ ) {
-            this->delta[n][c] = MatrixXf::Zero(this->map_height, this->map_width);
-            for ( int h = 0; h < this->map_height; h++ ) {
-                for ( int w = 0; w < this->map_width; w++ ) {
+            for ( int h = 0; h < this->input_height; h++ ) {
+                for ( int w = 0; w < this->input_width; w++ ) {
+                    this->delta[n][c](h, w) = 0.f;
                     P_min = std::max(0,
                         (int)ceil((h - this->filter_height + 1 + this->padding_height) / this->stlide_height));
-                    P_max = std::min(this->map_height-1,
+                    P_max = std::min(this->output_height-1,
                         (int)floor((h + this->padding_height) / this->stlide_height));
                     for ( int p = P_min; p <= P_max; p++ ) {
                         r = h - p * this->stlide_height + this->padding_height;
                         Q_min = std::max(0,
                             (int)ceil((w - this->filter_width + 1 + this->padding_width) / this->stlide_width));
-                        Q_max = std::min(this->map_width-1,
+                        Q_max = std::min(this->output_width-1,
                             (int)floor((w + this->padding_width) / this->stlide_width));
                         for ( int q = Q_min; q <= Q_max; q++ ) {
                             s = w - q * this->stlide_width + this->padding_width;
-                            // cout << n << " " << c << " " << h << " " << w << " " << k << " " << p << " " << q << " " << c << " " << r << " " << s << endl;
                             if ( this->_activated[n][c](p, q) == prev_activated[n][c](h, w) ) {
                                 this->delta[n][c](h, w) += next_delta[n][c](p, q);
                             }
@@ -123,13 +130,48 @@ void Max_Pooling_Layer::build_layer(const int channel_num,
 }
 
 
+void Max_Pooling_Layer::allocate_memory(const int batch_size,
+                                        const int input_height,
+                                        const int input_width) {
+    this->batch_size = batch_size;
+    this->input_height = input_height;
+    this->input_width = input_width;
+    this->output_height = ceil((input_height - this->filter_height + 1 + 2 * this->padding_height) / this->stlide_height);
+    this->output_width = ceil((input_width - this->filter_width + 1 + 2 * this->padding_width) / this->stlide_width);
+
+
+    // activated & delta
+    for ( int n = 0; n < this->batch_size; n++ ) {
+        vector<MatrixXf> tmp_activated;
+        for ( int c = 0; c < this->channel_num; c++ ) {
+            tmp_activated.push_back(MatrixXf::Zero(this->output_height, this->output_width));
+        }
+        this->_activated.push_back(tmp_activated);
+    }
+
+    // delta
+    for ( int i = 0; i < this->batch_size; i++ ) {
+        vector<MatrixXf> tmp_delta;
+        for ( int j = 0; j < this->channel_num; j++ ) {
+            tmp_delta.push_back(MatrixXf::Zero(this->input_height, this->input_width));
+        }
+        this->delta.push_back(tmp_delta);
+    }
+}
+
+
 bool Max_Pooling_Layer::get_trainable(void) { return this->trainable; }
 string Max_Pooling_Layer::get_type(void) { return this->type; }
 int Max_Pooling_Layer::get_batch_size(void) { return this->batch_size; }
 int Max_Pooling_Layer::get_channel_num(void) { return this->channel_num; }
-vector<int> Max_Pooling_Layer::get_map_shape(void) {
-    vector<int> map_shape{ this->map_height, this->map_width };
-    return map_shape; }
+vector<int> Max_Pooling_Layer::get_input_map_shape(void) {
+    vector<int> map_shape{ this->input_height, this->input_width };
+    return map_shape;
+}
+vector<int> Max_Pooling_Layer::get_output_map_shape(void) {
+    vector<int> map_shape{ this->output_height, this->output_width };
+    return map_shape;
+}
 vector<int> Max_Pooling_Layer::get_filter_shape(void) {
     vector<int> filter_shape{ this->filter_height, this->filter_width };
     return filter_shape;
