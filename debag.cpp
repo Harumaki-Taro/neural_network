@@ -37,9 +37,7 @@ int main(void) {
 
     // Define learning parameters.
     MatrixXf pred;
-    float learning_rate = 0.01;
     unsigned int mini_batch_size = 50;
-    unsigned int epoch = 50000;
 
     // Build a neural network archtecture.
     // Neural_Network nn;

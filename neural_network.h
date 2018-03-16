@@ -19,6 +19,7 @@
 #include "output_layer.h"
 #include "my_math.h"
 #include "batch.h"
+#include <chrono>
 
 using std::function;
 using std::cout;

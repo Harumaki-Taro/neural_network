@@ -2,6 +2,7 @@
 #define INCLUDE_train_h_
 
 #include <iostream>
+#include <chrono>
 #include <vector>
 #include <string>
 #include <boost/shared_ptr.hpp>
