@@ -20,10 +20,9 @@ using std::shared_ptr;
 class FullConnect_Layer : public Layer {
 public:
     virtual void forwardprop(const vector<vector <MatrixXf> > X);
-    virtual void calc_delta(const vector<vector <MatrixXf> > next_delta,
-                            const vector<vector <MatrixXf> > next_bW,
-                            const int nextW_rows, const int next_W_cols);
+    virtual void calc_delta(const std::shared_ptr<Layer> &next_layer);
     virtual void calc_differential(const vector<vector <MatrixXf> > prev_activated);
+    virtual void calc_differential(const std::shared_ptr<Layer> &prev_layer);
     virtual void allocate_memory(const int batch_size);
 
     FullConnect_Layer(const function<MatrixXf(MatrixXf)> f,
@@ -63,7 +62,6 @@ private:
     bool trainable = true;
     const string type = "full_connect_layer";
     // Parameters tracked during learning
-    vector<vector <MatrixXf> > delta;
     // Parameters specified at first
     int batch_size;
     int _W_cols;
@@ -106,11 +104,11 @@ void FullConnect_Layer::forwardprop(const vector<vector <MatrixXf> > X) {
 }
 
 
-void FullConnect_Layer::calc_delta(const vector<vector <MatrixXf> > next_delta,
-                                   const vector<vector <MatrixXf> > next_bW,
-                                   const int next_W_rows, const int next_W_cols) {
-    this->delta[0][0] = elemntwiseProduct(next_delta[0][0] * next_bW[0][0].block(1,0,next_W_rows,next_W_cols).transpose(),
-                                    d_f(this->_activated[0][0]));
+void FullConnect_Layer::calc_delta(const std::shared_ptr<Layer> &next_layer) {
+    this->delta[0][0]
+        = elemntwiseProduct(next_layer->get_delta()[0][0] *
+        next_layer->get_bW()[0][0].block(1,0,next_layer->get_W_rows(),next_layer->get_W_cols()).transpose(),
+        d_f(this->_activated[0][0]));
 }
 
 
@@ -122,6 +120,17 @@ void FullConnect_Layer::calc_differential(const vector<vector <MatrixXf> > prev_
 
     this->_dE_dbW[0][0] /= (float)this->batch_size;
 }
+
+
+void FullConnect_Layer::calc_differential(const std::shared_ptr<Layer> &prev_layer) {
+    this->_dE_dbW[0][0].block(1, 0, this->_W_rows, this->_W_cols)
+        = prev_layer->_activated[0][0].transpose() * this->delta[0][0];
+
+    this->_dE_dbW[0][0].block(0, 0, 1, this->_W_cols) = this->delta[0][0].colwise().sum();
+
+    this->_dE_dbW[0][0] /= (float)this->batch_size;
+}
+
 
 
 void FullConnect_Layer::build_layer(const function<MatrixXf(MatrixXf)> f,

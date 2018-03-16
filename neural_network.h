@@ -192,23 +192,14 @@ void Neural_Network::backprop(const MatrixXf pred, const MatrixXf label) {
     this->_layers[this->_layer_num-2]->set_delta(this->_layers.back()->get_delta());
     // hidden_layer (delta)
     for ( int i = this->_layer_num-2; i != 1; --i ) {
-        if ( this->_layers[i-1]->get_type() == "full_connect_layer" ) {
-            this->_layers[i-1]->calc_delta(this->_layers[i]->get_delta(),
-                                           this->_layers[i]->get_bW(),
-                                           this->_layers[i]->get_W_rows(),
-                                           this->_layers[i]->get_W_cols());
-        } else if ( this->_layers[i-1]->get_type() == "flatten_layer" ) {
-            this->_layers[i-1]->calc_delta(this->_layers[i]->get_delta(),
-                                           this->_layers[i]->get_bW(),
-                                           this->_layers[i]->get_W_rows(),
-                                           this->_layers[i]->get_W_cols());
-        } else if ( this->_layers[i-1]->get_type() == "en_tensor_layer" ) {
-            this->_layers[i-1]->calc_delta(this->_layers[i]->get_delta());
-        } else if ( this->_layers[i-1]->get_type() == "convolution_layer" ) {
-            this->_layers[i-1]->calc_delta(this->_layers[i]->get_delta());
+        if ( this->_layers[i-1]->get_type() == "full_connect_layer"
+            || this->_layers[i-1]->get_type() == "flatten_layer"
+            || this->_layers[i-1]->get_type() == "en_tensor_layer"
+            || this->_layers[i-1]->get_type() == "convolution_layer" ) {
+            this->_layers[i-1]->calc_delta(this->_layers[i]);
         } else if ( this->_layers[i-1]->get_type() == "max_pooling_layer" ) {
-            this->_layers[i-1]->calc_delta(this->_layers[i]->get_delta(),
-                                           this->_layers[i-2]->get_activated());
+            this->_layers[i-1]->calc_delta(this->_layers[i],
+                                           this->_layers[i-2]);
         } else {
             cout << i << this->_layers[i-1]->get_type() << endl;
             cout << "(calc_delta)Neural Networkクラスでは指定のレイヤークラスを利用できません。" << endl;
@@ -220,14 +211,14 @@ void Neural_Network::backprop(const MatrixXf pred, const MatrixXf label) {
     for ( int i = 0; i != (int)this->_layers.size(); i++ ) {
         if ( this->_layers[i]->get_trainable() ) {
             if ( this->_layers[i]->get_type() == "full_connect_layer" ) {
-                this->_layers[i]->calc_differential(this->_layers[i-1]->get_activated());
+                this->_layers[i]->calc_differential(this->_layers[i-1]);
             } else if ( this->_layers[i]->get_type() == "flatten_layer" ) {
                 ;
             } else if ( this->_layers[i]->get_type() == "en_tensor_layer" ) {
                 ;
             } else if ( this->_layers[i]->get_type() == "convolution_layer" ) {
-                this->_layers[i]->calc_differential(this->_layers[i-1]->get_activated(),
-                                                    this->_layers[i+1]->get_delta());
+                this->_layers[i]->calc_differential(this->_layers[i-1],
+                                                    this->_layers[i+1]);
             } else if ( this->_layers[i]->get_type() == "max_pooling_layer" ) {
                 ;
             } else {
@@ -273,7 +264,7 @@ void Neural_Network::debag(const Mini_Batch mini_batch, const int point_num, con
                     nmc_diff.push_back(central_difference(this->_layers[i]->get_bW()[shape_0[j]][shape_1[j]](shape_2[j], shape_3[j]),
                         mini_batch, point_num));
                     aut_diff.push_back(this->_layers[i]->get_dE_dbW()[shape_0[j]][shape_1[j]](shape_2[j], shape_3[j]));
-                    mean_diff_diff += nmc_diff[j] - aut_diff[j];
+                    mean_diff_diff += fabs(nmc_diff[j] - aut_diff[j]);
                 }
                 mean_diff_diff /= (float)calc_num_per_layer;
                 cout << "Layer" << i << " (full_connect_layer): " << mean_diff_diff / loss_value * 100.f << "[\%]" << endl;
@@ -295,7 +286,7 @@ void Neural_Network::debag(const Mini_Batch mini_batch, const int point_num, con
                     nmc_diff.push_back(central_difference(this->_layers[i]->get_W()[shape_0[j]][shape_1[j]](shape_2[j], shape_3[j]),
                         mini_batch, point_num));
                     aut_diff.push_back(this->_layers[i]->get_dE_dW()[shape_0[j]][shape_1[j]](shape_2[j], shape_3[j]));
-                    mean_diff_diff += nmc_diff[j] - aut_diff[j];
+                    mean_diff_diff += fabs(nmc_diff[j] - aut_diff[j]);
                 }
                 mean_diff_diff /= (float)calc_num_per_layer;
                 cout << "Layer" << i << " (convolution_layer): " << mean_diff_diff / loss_value * 100.f << "[\%]" << endl;
@@ -336,6 +327,9 @@ float Neural_Network::central_difference(float& x, const Mini_Batch mini_batch, 
         float right_right = this->calc_loss(mini_batch.example, mini_batch.label);
 
         output = (left_left - 8.f * left + 8.f * right - right_right) / (12.f * eps);
+    } else {
+        cout << "対応していません" << endl;
+        exit(1);
     }
     x = tmp;
 

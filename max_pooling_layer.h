@@ -21,6 +21,8 @@ public:
     virtual void forwardprop(const vector< vector<MatrixXf> > X);
     virtual void calc_delta(const vector<vector<MatrixXf> > next_delta,
                             const vector<vector<MatrixXf> > prev_activated);
+    virtual void calc_delta(const std::shared_ptr<Layer> &next_layer,
+                            const std::shared_ptr<Layer> &prev_layer);
     virtual void allocate_memory(const int batch_size, const int prev_height, const int prev_width);
 
     Max_Pooling_Layer(const int channel_num,
@@ -58,7 +60,6 @@ private:
     int stlide_width;
     int padding_height;
     int padding_width;
-    vector< vector<MatrixXf> > delta;
 };
 
 
@@ -87,6 +88,44 @@ void Max_Pooling_Layer::forwardprop(const vector< vector<MatrixXf> > X) {
                 for ( int q = 0; q < this->output_width; q++ ){
                     w = q * this->stlide_width - this->padding_width;
                     this->_activated[n][k](p, q) = X[n][k].block(h, w, this->filter_height, this->filter_width).maxCoeff();
+                }
+            }
+        }
+    }
+}
+
+
+void Max_Pooling_Layer::calc_delta(const std::shared_ptr<Layer> &next_layer,
+                                   const std::shared_ptr<Layer> &prev_layer) {
+    #pragma omp parallel for
+    for ( int n = 0; n < this->batch_size; n++ ) {
+        int P_max = 0;
+        int P_min = 0;
+        int Q_max = 0;
+        int Q_min = 0;
+        int r = 0;
+        int s = 0;
+        for ( int c = 0; c < this->channel_num; c++ ) {
+            for ( int h = 0; h < this->input_height; h++ ) {
+                for ( int w = 0; w < this->input_width; w++ ) {
+                    this->delta[n][c](h, w) = 0.f;
+                    P_min = std::max(0,
+                        (int)ceil((h - this->filter_height + 1 + this->padding_height) / this->stlide_height));
+                    P_max = std::min(this->output_height-1,
+                        (int)floor((h + this->padding_height) / this->stlide_height));
+                    for ( int p = P_min; p <= P_max; p++ ) {
+                        r = h - p * this->stlide_height + this->padding_height;
+                        Q_min = std::max(0,
+                            (int)ceil((w - this->filter_width + 1 + this->padding_width) / this->stlide_width));
+                        Q_max = std::min(this->output_width-1,
+                            (int)floor((w + this->padding_width) / this->stlide_width));
+                        for ( int q = Q_min; q <= Q_max; q++ ) {
+                            s = w - q * this->stlide_width + this->padding_width;
+                            if ( this->_activated[n][c](p, q) == prev_layer->_activated[n][c](h, w) ) {
+                                this->delta[n][c](h, w) += next_layer->get_delta()[n][c](p, q);
+                            }
+                        }
+                    }
                 }
             }
         }

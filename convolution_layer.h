@@ -19,9 +19,9 @@ using std::shared_ptr;
 class Convolution_Layer : public Layer {
 public:
     virtual void forwardprop(const vector< vector<MatrixXf> > X);
-    virtual void calc_differential(const vector< vector<MatrixXf> > prev_activated,
-                                   const vector< vector<MatrixXf> > next_delta);
-    virtual void calc_delta(const vector< vector<MatrixXf> > next_delta);
+    virtual void calc_differential(const std::shared_ptr<Layer> &prev_layer,
+                                   const std::shared_ptr<Layer> &next_layer);
+    virtual void calc_delta(const std::shared_ptr<Layer> &next_layer);
     virtual void allocate_memory(const int batch_size, const int prev_height, const int prev_width);
 
     Convolution_Layer(const function<MatrixXf(MatrixXf)> f,
@@ -66,7 +66,6 @@ private:
     bool trainable = true;
     const string type = "convolution_layer";
     // Parameters tracked during learning
-    vector<vector <MatrixXf> > delta;
     vector <vector<MatrixXf> > _d_f;
     // vector<vector <MatrixXf> > W;   // NOTE:convolutionしか使ってない問題
     // vector< vector<MatrixXf> > dE_dW;   // NOTE:convolutionしか使ってない問題
@@ -152,7 +151,8 @@ void Convolution_Layer::forwardprop(const vector< vector<MatrixXf> > X) {
 }
 
 
-void Convolution_Layer::calc_delta(const vector< vector<MatrixXf> > next_delta) {
+void Convolution_Layer::calc_delta(const std::shared_ptr<Layer> &next_layer) {
+    vector< vector<MatrixXf> > next_delta = next_layer->get_delta();
     #pragma omp parallel for
     for ( int n = 0; n < this->batch_size; n++ ) {
         int P_max = 0;
@@ -192,8 +192,8 @@ void Convolution_Layer::calc_delta(const vector< vector<MatrixXf> > next_delta) 
 }
 
 
-void Convolution_Layer::calc_differential(const vector< vector<MatrixXf> > prev_activated,
-                                          const vector< vector<MatrixXf> > next_delta) {
+void Convolution_Layer::calc_differential(const std::shared_ptr<Layer> &prev_layer,
+                                          const std::shared_ptr<Layer> &next_layer) {
     // W
     #pragma omp parallel for
     for ( int k = 0; k < this->channel_num; k++ ) {
@@ -209,8 +209,8 @@ void Convolution_Layer::calc_differential(const vector< vector<MatrixXf> > prev_
                             w = q * this->stlide_width + s - this->padding_width;
                             for ( int p = 0; p < this->output_width; p++ ) {
                                 h = p * this->stlide_height + r - this->padding_height;
-                                this->dE_dW[k][c](r, s) += next_delta[n][k](p, q) * prev_activated[n][c](h, w);
-                                this->dE_db(0, k) += next_delta[n][k](p, q);
+                                this->dE_dW[k][c](r, s) += next_layer->delta[n][k](p, q) * prev_layer->_activated[n][c](h, w);
+                                this->dE_db(0, k) += next_layer->delta[n][k](p, q);
                             }
                         }
                     }

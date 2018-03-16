@@ -1,5 +1,8 @@
 #include <iostream>
+#ifdef _OPENMP
 #include <omp.h>
+#endif
+#include "Eigen/Core"
 
 
 void use_openmp(void) {

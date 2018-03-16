@@ -19,7 +19,7 @@ using std::shared_ptr;
 class En_Tensor_Layer : public Layer {
 public:
     virtual void forwardprop(const vector< vector<MatrixXf> > X);
-    virtual void calc_delta(const vector< vector<MatrixXf> > next_delta);
+    virtual void calc_delta(const std::shared_ptr<Layer> &next_layer);
     virtual void allocate_memory(const int batch_size);
 
     En_Tensor_Layer(const int channel_num, const int height, const int width);
@@ -37,7 +37,6 @@ private:
     int output_height;
     int output_width;
     int batch_size;
-    vector< vector<MatrixXf> > delta;
 };
 
 
@@ -63,14 +62,14 @@ void En_Tensor_Layer::forwardprop(const vector< vector<MatrixXf> > X) {
 }
 
 
-void En_Tensor_Layer::calc_delta(const vector< vector<MatrixXf> > next_delta) {
+void En_Tensor_Layer::calc_delta(const std::shared_ptr<Layer> &next_layer) {
     #pragma omp parallel for
     for ( int n = 0; n < this->batch_size; n++ ) {
         for ( int k = 0; k <this->channel_num; k++ ) {
             for ( int p = 0; p < this->output_height; p++ ) {
                 for ( int q = 0; q < this->output_width; q++ ) {
                     this->delta[0][0](n, this->channel_num * this->output_height * k + this->output_height * p + q)
-                        =  next_delta[n][k](p, q);
+                        =  next_layer->get_delta()[n][k](p, q);
                 }
             }
         }

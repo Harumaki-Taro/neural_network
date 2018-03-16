@@ -19,9 +19,7 @@ using std::shared_ptr;
 class Flatten_Layer : public Layer {
 public:
     virtual void forwardprop(const vector< vector<MatrixXf> > next_delta);
-    virtual void calc_delta(const vector< vector<MatrixXf> > next_delta,
-                            const vector< vector<MatrixXf> > next_bW,
-                            const int next_W_rows, const int next_W_cols);
+    virtual void calc_delta(const std::shared_ptr<Layer> &next_layer);
     virtual void allocate_memory(const int batch_size);
 
     Flatten_Layer(const int channel_num, const int height, const int width);
@@ -41,7 +39,6 @@ private:
     int input_height;
     int input_width;
     int batch_size;
-    vector< vector<MatrixXf> > delta;
 };
 
 
@@ -67,13 +64,12 @@ void Flatten_Layer::forwardprop(const vector< vector<MatrixXf> > X) {
 }
 
 
-void Flatten_Layer::calc_delta(const vector< vector<MatrixXf> > next_delta,
-                               const vector< vector<MatrixXf> > next_bW,
-                               const int next_W_rows, const int next_W_cols) {
+void Flatten_Layer::calc_delta(const std::shared_ptr<Layer> &next_layer) {
     vector< vector<MatrixXf> > tmp;
     tmp.resize(1); tmp[0].resize(1);
     tmp[0][0].resize(this->batch_size, this->prev_channel_num * this->input_height * this->input_width);
-    tmp[0][0] = next_delta[0][0] * next_bW[0][0].block(1,0,next_W_rows,next_W_cols).transpose();
+    tmp[0][0] = next_layer->get_delta()[0][0]
+        * next_layer->get_bW()[0][0].block(1,0,next_layer->get_W_rows(),next_layer->get_W_cols()).transpose();
 
     #pragma omp parallel for
     for ( int n = 0; n < this->batch_size; n++ ) {

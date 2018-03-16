@@ -66,7 +66,7 @@ void SGD::update(Loss &loss, Neural_Network& nn) {
                     MatrixXf tmp = nn.get_layers()[j]->dE_dW[k][l];
 
                     for ( int m = 0; m < loss.get_terms().size(); m++ ) {
-                        if ( loss.get_terms()[m].name == "Lp_norm" ) {
+                        if ( loss.get_terms()[m].name == "Lp_norm" && (std::find(loss.get_terms()[m].index.begin(), loss.get_terms()[m].index.end(), j) != loss.get_terms()[m].index.end()) ) {
                             if ( loss.get_terms()[m].ord == 2 ) {
                                 tmp += loss.get_terms()[m].eps * nn.get_layers()[j]->get_W()[k][l];
                             } else {
