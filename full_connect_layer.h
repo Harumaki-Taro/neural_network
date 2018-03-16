@@ -46,8 +46,8 @@ public:
     virtual function<MatrixXf(MatrixXf)> get_activateFunction(void);
     virtual function<MatrixXf(MatrixXf)> get_d_activateFunction(void);
     virtual vector<vector <MatrixXf> > get_dE_dbW(void);
-    MatrixXf get_dE_dW(void);
-    MatrixXf get_dE_db(void);
+    // MatrixXf get_dE_dW(void);
+    // MatrixXf get_dE_db(void);
 
     // setter
     virtual void set_batch_size(const int batch_size);
@@ -212,12 +212,12 @@ vector<vector <MatrixXf> > FullConnect_Layer::get_delta(void) { return this->del
 function<MatrixXf(MatrixXf)> FullConnect_Layer::get_activateFunction(void) { return this->f; }
 function<MatrixXf(MatrixXf)> FullConnect_Layer::get_d_activateFunction(void) { return this->d_f; }
 vector<vector <MatrixXf> > FullConnect_Layer::get_dE_dbW(void) { return this->_dE_dbW; }
-MatrixXf FullConnect_Layer::get_dE_dW(void) {
-    return this->_dE_dbW[0][0].block(1,0,this->_W_rows,this->_W_cols);
-}
-MatrixXf FullConnect_Layer::get_dE_db(void) {
-    return this->_dE_dbW[0][0].block(0,0,1,this->_W_cols);
-}
+// vector<vector <MatrixXf> >  FullConnect_Layer::get_dE_dW(void) {
+//     return this->_dE_dbW[0][0].block(1,0,this->_W_rows,this->_W_cols);
+// }
+// MatrixXf FullConnect_Layer::get_dE_db(void) {
+//     return this->_dE_dbW[0][0].block(0,0,1,this->_W_cols);
+// }
 
 void FullConnect_Layer::set_batch_size(const int batch_size) {
     this->allocate_memory(batch_size);

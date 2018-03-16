@@ -50,7 +50,7 @@ public:
     virtual vector<vector <MatrixXf> > get_delta(void);
     virtual function<MatrixXf(MatrixXf)> get_activateFunction(void);
     virtual function<MatrixXf(MatrixXf)> get_d_activateFunction(void);
-    vector< vector<MatrixXf> > get_dE_dW(void);
+    virtual vector< vector<MatrixXf> > get_dE_dW(void);
     MatrixXf get_dE_db(void);
 
     // setter

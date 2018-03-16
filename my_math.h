@@ -214,6 +214,20 @@ int pop_seed(int seed=0) {
 }
 
 
+vector<int> rand_array(const int num, const int min=0, const int max=1, const int seed=0) {
+    int _seed = pop_seed(seed);
+    std::mt19937 mt(_seed);
+    std::uniform_int_distribution<int> gen_rand(min, max);
+
+    vector<int> output;
+    for ( int i = 0; i < num; i++ ) {
+        output.push_back(gen_rand(mt));
+    }
+
+    return output;
+}
+
+
 vector<vector <MatrixXf> > uniform_rand(const int (&shape)[4], const float min, const float max,
                                         const int seed=0) {
 

@@ -94,6 +94,10 @@ public:
         cout << "使用禁止v" << endl;
         vector< vector<MatrixXf> > tmp;
         tmp.resize(1); tmp[0].resize(1); tmp[0][0] = MatrixXf::Zero(1,1); return tmp; }
+    virtual vector< vector<MatrixXf> > get_dE_dW(void) {
+        cout << "使用禁止vv" << endl;
+        vector< vector<MatrixXf> > tmp;
+        tmp.resize(1); tmp[0].resize(1); tmp[0][0] = MatrixXf::Zero(1,1); return tmp; }
     virtual vector<int> get_input_map_shape(void) {cout << "使用禁止v2" << endl; exit(1); vector<int> tmp; tmp.resize(1); tmp[0] = 0; return tmp; }
     virtual vector<int> get_output_map_shape(void) {cout << "使用禁止v3" << endl; exit(1); vector<int> tmp; tmp.resize(1); tmp[0] = 0; return tmp; }
     // setter

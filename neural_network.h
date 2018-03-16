@@ -7,6 +7,7 @@
 #include <functional>
 #include <string>
 #include <math.h>
+#include <float.h>
 #include "Eigen/Core"
 #include "layer.h"
 #include "full_connect_layer.h"
@@ -17,6 +18,7 @@
 #include "input_layer.h"
 #include "output_layer.h"
 #include "my_math.h"
+#include "batch.h"
 
 using std::function;
 using std::cout;
@@ -28,6 +30,13 @@ using Eigen::MatrixXf;
 //
 // training data
 //
+
+
+typedef struct tmp_layer_Wb {
+    vector<vector <MatrixXf> > bW;
+    vector<vector <MatrixXf> > W;
+    vector<float> b;
+}tmp_layer_Wb;
 
 
 class Neural_Network {
@@ -50,6 +59,10 @@ public:
     void backprop(const MatrixXf pred, const MatrixXf label);
     float calc_loss_with_prev_pred(const MatrixXf label);
     float calc_loss(const MatrixXf X, const MatrixXf label);
+
+    // debag
+    void debag(const Mini_Batch mini_batch, const int point_num=3, const int calc_num_per_layer=100);
+    float central_difference(float& x, const Mini_Batch mini_batch, const int point_num=3);
 
     // getter
     vector< shared_ptr<Layer> > get_layers(void);
@@ -235,6 +248,98 @@ float Neural_Network::calc_loss_with_prev_pred(const MatrixXf label) {
 float Neural_Network::calc_loss(MatrixXf X, MatrixXf label) {
     this->_pred = this->forwardprop(X);
     return this->calc_loss_with_prev_pred(label);
+}
+
+
+void Neural_Network::debag(const Mini_Batch mini_batch, const int point_num, const int calc_num_per_layer) {
+    // Automatic differentiation with back propagation
+    MatrixXf pred = this->forwardprop(mini_batch.example);
+    this->backprop(pred, mini_batch.label);
+    float loss_value = this->calc_loss_with_prev_pred(mini_batch.label);
+
+    // Numerical differentiation with central difference formula
+    for ( int i = 0; i != (int)this->_layers.size(); i++ ) {
+        if ( this->_layers[i]->get_trainable() ) {
+            if ( this->_layers[i]->get_type() == "full_connect_layer" ) {
+                vector<float> aut_diff;
+                vector<float> nmc_diff;
+                float mean_diff_diff=0;
+                vector<int> shape_0 = rand_array(calc_num_per_layer, 0, this->_layers[i]->get_bW().size()-1);
+                vector<int> shape_1 = rand_array(calc_num_per_layer, 0, this->_layers[i]->get_bW()[0].size()-1);
+                vector<int> shape_2 = rand_array(calc_num_per_layer, 0, this->_layers[i]->get_bW()[0][0].rows()-1);
+                vector<int> shape_3 = rand_array(calc_num_per_layer, 0, this->_layers[i]->get_bW()[0][0].cols()-1);
+
+                for ( int j = 0; j < calc_num_per_layer; j++ ) {
+                    nmc_diff.push_back(central_difference(this->_layers[i]->get_bW()[shape_0[j]][shape_1[j]](shape_2[j], shape_3[j]),
+                        mini_batch, point_num));
+                    aut_diff.push_back(this->_layers[i]->get_dE_dbW()[shape_0[j]][shape_1[j]](shape_2[j], shape_3[j]));
+                    mean_diff_diff += nmc_diff[j] - aut_diff[j];
+                }
+                mean_diff_diff /= (float)calc_num_per_layer;
+                cout << "Layer" << i << " (full_connect_layer): " << mean_diff_diff / loss_value * 100.f << "[\%]" << endl;
+
+            } else if ( this->_layers[i]->get_type() == "flatten_layer" ) {
+                ;
+            } else if ( this->_layers[i]->get_type() == "en_tensor_layer" ) {
+                ;
+            } else if ( this->_layers[i]->get_type() == "convolution_layer" ) {
+                vector<float> aut_diff;
+                vector<float> nmc_diff;
+                float mean_diff_diff=0;
+                vector<int> shape_0 = rand_array(calc_num_per_layer, 0, this->_layers[i]->get_W().size()-1);
+                vector<int> shape_1 = rand_array(calc_num_per_layer, 0, this->_layers[i]->get_W()[0].size()-1);
+                vector<int> shape_2 = rand_array(calc_num_per_layer, 0, this->_layers[i]->get_W()[0][0].rows()-1);
+                vector<int> shape_3 = rand_array(calc_num_per_layer, 0, this->_layers[i]->get_W()[0][0].cols()-1);
+
+                for ( int j = 0; j < calc_num_per_layer; j++ ) {
+                    nmc_diff.push_back(central_difference(this->_layers[i]->get_W()[shape_0[j]][shape_1[j]](shape_2[j], shape_3[j]),
+                        mini_batch, point_num));
+                    aut_diff.push_back(this->_layers[i]->get_dE_dW()[shape_0[j]][shape_1[j]](shape_2[j], shape_3[j]));
+                    mean_diff_diff += nmc_diff[j] - aut_diff[j];
+                }
+                mean_diff_diff /= (float)calc_num_per_layer;
+                cout << "Layer" << i << " (convolution_layer): " << mean_diff_diff / loss_value * 100.f << "[\%]" << endl;
+            } else if ( this->_layers[i]->get_type() == "max_pooling_layer" ) {
+                ;
+            } else {
+                cout << i << this->_layers[i]->get_type() << endl;
+                cout << "(calc_dE)Neural Networkクラスでは指定のレイヤークラスを利用できません。" << endl;
+                exit(1);
+            }
+        }
+    }
+
+
+}
+
+
+float Neural_Network::central_difference(float& x, const Mini_Batch mini_batch, const int point_num) {
+    float tmp = x;
+    float eps = sqrt(FLT_EPSILON) * fabs(tmp);
+    float output;
+
+    if ( point_num == 3 ) {
+        x = tmp - eps;
+        float left = this->calc_loss(mini_batch.example, mini_batch.label);
+        x = tmp + eps;
+        float right = this->calc_loss(mini_batch.example, mini_batch.label);
+
+        output = (right - left) / (2.f * eps);
+    } else if ( point_num == 5 ) {
+        x = tmp - 2.f * eps;
+        float left_left = this->calc_loss(mini_batch.example, mini_batch.label);
+        x = tmp - eps;
+        float left = this->calc_loss(mini_batch.example, mini_batch.label);
+        x = tmp + eps;
+        float right = this->calc_loss(mini_batch.example, mini_batch.label);
+        x = tmp + 2.f * eps;
+        float right_right = this->calc_loss(mini_batch.example, mini_batch.label);
+
+        output = (left_left - 8.f * left + 8.f * right - right_right) / (12.f * eps);
+    }
+    x = tmp;
+
+    return output;
 }
 
 
