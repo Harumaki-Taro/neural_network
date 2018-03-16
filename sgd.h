@@ -43,7 +43,7 @@ void SGD::update(Loss &loss, Neural_Network& nn) {
                     MatrixXf tmp = nn.get_layers()[j]->_dE_dbW[k][l];
 
                     for ( int m = 0; m < loss.get_terms().size(); m++ ) {
-                        if ( loss.get_terms()[m].name == "Lp_norm" ) {
+                        if ( loss.get_terms()[m].name == "Lp_norm" && (std::find(loss.get_terms()[m].index.begin(), loss.get_terms()[m].index.end(), j) != loss.get_terms()[m].index.end()) ) {
                             if ( loss.get_terms()[m].ord == 2 ) {
                                 tmp += loss.get_terms()[m].eps * nn.get_layers()[j]->get_bW()[k][l];
                             } else {
@@ -61,8 +61,8 @@ void SGD::update(Loss &loss, Neural_Network& nn) {
         } else if ( nn.get_layers()[j]->get_type() == "en_tensor_layer" ) {
             ;
         } else if ( nn.get_layers()[j]->get_type() == "convolution_layer" ) {
-            for ( int k = 0; k < nn.get_layers()[j]->_dE_dbW.size(); k++ ) {
-                for ( int l = 0; l < nn.get_layers()[j]->_dE_dbW[0].size(); l++ ) {
+            for ( int k = 0; k < nn.get_layers()[j]->dE_dW.size(); k++ ) {
+                for ( int l = 0; l < nn.get_layers()[j]->dE_dW[0].size(); l++ ) {
                     MatrixXf tmp = nn.get_layers()[j]->dE_dW[k][l];
 
                     for ( int m = 0; m < loss.get_terms().size(); m++ ) {
@@ -81,7 +81,7 @@ void SGD::update(Loss &loss, Neural_Network& nn) {
             }
             MatrixXf tmp = nn.get_layers()[j]->dE_db;
             for ( int m = 0; m < loss.get_terms().size(); m++ ) {
-                if ( loss.get_terms()[m].name == "Lp_norm" ) {
+                if ( loss.get_terms()[m].name == "Lp_norm" && (std::find(loss.get_terms()[m].index.begin(), loss.get_terms()[m].index.end(), j) != loss.get_terms()[m].index.end()) ) {
                     if ( loss.get_terms()[m].ord == 2 ) {
                         tmp += loss.get_terms()[m].eps * nn.get_layers()[j]->get_b();
                     } else {

@@ -48,13 +48,11 @@ void Train::update(Neural_Network& nn, Mini_Batch mini_batch, int i) {
     MatrixXf pred = nn.forwardprop(mini_batch.example);
     nn.backprop(pred, mini_batch.label);
 
-    MatrixXf before = nn.get_layers()[3]->get_bW()[0][0];
     this->opt->update(this->loss, nn);
-    MatrixXf after = nn.get_layers()[3]->get_bW()[0][0];
 
     end = std::chrono::system_clock::now();  // 計測終了時間
 
-    if ( i % 100 == 0 ) {
+    if ( i % 1 == 0 ) {
         double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count(); //処理に要した時間をミリ秒に変換
         cout << "step: " << i << "  " << "loss: " << nn.calc_loss_with_prev_pred(mini_batch.label) << " (" << elapsed << " msec)" << endl;
     }

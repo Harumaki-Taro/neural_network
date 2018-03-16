@@ -14,9 +14,6 @@
 #include "initialize.h"
 #include "my_math.h"
 #include "neural_network.h"
-// #include "loss.h"
-// #include "train.h"
-// #include <pybind11/pybind11.h>
 #include "mnist.h"
 #include "loss.h"
 #include "sgd.h"
@@ -66,17 +63,8 @@ int main(void) {
         Mini_Batch mini_batch = mnist._train.randomPop(mini_batch_size);
         train.update(nn, mini_batch, i);
     }
-    // nn = train.output();
+    
     cout << nn.get_pred() << endl;
 
     return 0;
 }
-
-
-// namespace py = pybind11;
-// PYBIND11_PLUGIN(neural_network) {
-//     py::module m("neural_network", "neural_network made by pybind11");
-//     m.def("example", &example);
-//
-//     return m.ptr();
-// }
