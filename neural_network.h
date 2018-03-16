@@ -66,6 +66,7 @@ public:
 
     // constructor
     Neural_Network(void);
+    Neural_Network(const Neural_Network &obj){ cout << "コピーコンストラクタが呼ばれたよ" << endl; } // コピーコンストラクタ
 
 private:
     vector< shared_ptr<Layer> > _layers;

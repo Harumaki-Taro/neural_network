@@ -2,7 +2,6 @@
 #include <omp.h>
 
 
-
 void use_openmp(void) {
     // openMP
     int n = Eigen::nbThreads( );

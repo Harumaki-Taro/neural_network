@@ -18,6 +18,9 @@
 // #include "train.h"
 // #include <pybind11/pybind11.h>
 #include "mnist.h"
+#include "loss.h"
+#include "sgd.h"
+#include "train.h"
 
 using std::function;
 using std::cout;
@@ -37,8 +40,8 @@ int main(void) {
 
     // Define learning parameters.
     MatrixXf pred;
-    float eps = 0.01;
-    unsigned int mini_batch_size = 32;
+    float learning_rate = 0.01;
+    unsigned int mini_batch_size = 50;
     unsigned int epoch = 50000;
 
     // Build a neural network archtecture.
@@ -50,92 +53,21 @@ int main(void) {
     int W3_shape[2] = { 200, 10 };
     nn.add_layer( FullConnect_Layer(identity, identity_d, W3_shape) );
     nn.add_layer( Output_Layer(softmax, mean_cross_entropy, diff, 10) );
-
     nn.allocate_memory(mini_batch_size, 28*28);
 
     // Define loss function and optimizer.
-    // Loss loss;
-    // loss.add_crossEntropy();
-    // // loss.add_LpNorm(2);
-    // Train train(nn, loss);
+    Loss loss(nn);
+    loss.add_LpNorm(0.001, 2);
 
-    // Initialize the neural network and training environment.
-    // train.build_updateTerms();
+    SGD opt(learning_rate);
+    Train train(loss, opt);
 
     for ( unsigned int i = 0; i < epoch; i++ ) {
-        std::chrono::system_clock::time_point  start, end;
-        start = std::chrono::system_clock::now(); // 計測開始時間
-        // train.update(data, label);
         Mini_Batch mini_batch = mnist._train.randomPop(mini_batch_size);
-        pred = nn.forwardprop(mini_batch.example);
-        nn.backprop(pred, mini_batch.label);
-
-        for ( int j = 0; j != (int)nn.get_layers().size(); j++ ) {
-            if ( nn.get_layers()[j]->get_trainable() ) {
-                if ( nn.get_layers()[j]->get_type() == "full_connect_layer" ) {
-                    nn.get_layers()[j]->bW[0][0]
-                        = nn.get_layers()[j]->get_bW()[0][0]
-                        - (eps * nn.get_layers()[j]->_dE_dbW[0][0].array()).matrix();
-                } else if ( nn.get_layers()[j]->get_type() == "flatten_layer" ) {
-                    ;
-                } else if ( nn.get_layers()[j]->get_type() == "flatten_layer" ) {
-                    ;
-                } else if ( nn.get_layers()[j]->get_type() == "en_tensor_layer" ) {
-                    ;
-                } else if ( nn.get_layers()[j]->get_type() == "convolution_layer" ) {
-                    for ( int k = 0; k < nn.get_layers()[j]->get_channel_num(); k++ ) {
-                        for ( int l = 0; l < nn.get_layers()[j]->get_prev_channel_num(); l++ ) {
-                            nn.get_layers()[j]->W[k][l]
-                                = nn.get_layers()[j]->W[k][l]
-                                - (eps * nn.get_layers()[j]->dE_dW[k][l].array()).matrix();
-                        }
-                    }
-                    nn.get_layers()[j]->b
-                        = nn.get_layers()[j]->b
-                         - (eps * nn.get_layers()[j]->dE_db.array()).matrix();
-                } else {
-                    cout << "不詳クラス" << endl;
-                    exit(1);
-                }
-
-
-
-                // if ( i == 0 ) {
-                //     nn.get_layers()[j]->calc_differential(nn.get_layers()[j-1]->get_activated());
-                //     nn.get_layers()[j]->bW
-                //         = nn.get_layers()[j]->get_bW()
-                //          - (eps * nn.get_layers()[j]->_dE_dbW.array()).matrix();
-                // } else if ( i == 1 ) {
-                //     prev_bW[j] = nn.get_layers()[j]->bW;
-                //
-                //     nn.get_layers()[j]->calc_differential(nn.get_layers()[j-1]->get_activated());
-                //     nn.get_layers()[j]->bW
-                //         = nn.get_layers()[j]->get_bW()
-                //          - (eps * nn.get_layers()[j]->_dE_dbW.array()).matrix();
-                // } else {
-                //     MatrixXf tmp = nn.get_layers()[j]->bW;
-                //     MatrixXf diff = nn.get_layers()[j]->bW - prev_bW[j];
-                //
-                //     nn.get_layers()[j]->calc_differential(nn.get_layers()[j-1]->get_activated());
-                //     nn.get_layers()[j]->bW
-                //         = nn.get_layers()[j]->get_bW()
-                //          - (eps * nn.get_layers()[j]->_dE_dbW.array()).matrix()
-                //          + 0.9 * diff;
-                //     prev_bW[j] = tmp;
-                // }
-            }
-        }
-        end = std::chrono::system_clock::now();  // 計測終了時間
-
-        if ( i % 100 == 0 ) {
-            double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count(); //処理に要した時間をミリ秒に変換
-            cout << "step: " << i << "  " << "loss: " << nn.calc_loss_with_prev_pred(mini_batch.label) << " (" << elapsed << " msec/example)" << endl;
-        }
-
-        if ( i + 1 == epoch ) {
-            cout << pred << endl;
-        }
+        train.update(nn, mini_batch, i);
     }
+    // nn = train.output();
+    cout << nn.get_pred() << endl;
 
     return 0;
 }
