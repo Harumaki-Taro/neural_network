@@ -11,7 +11,12 @@ using std::cout;
 using std::endl;
 using std::string;
 using std::ifstream;
+using std::random_device;
+using std::shuffle;
+using std::mt19937;
 using Eigen::MatrixXf;
+using Eigen::PermutationMatrix;
+using Eigen::Dynamic;
 
 
 typedef struct Mini_Batch{
@@ -57,7 +62,7 @@ Batch::Batch(const MatrixXf example, const MatrixXf label, const unsigned int in
     this->_batch_size = this->_example.rows();
 
     if ( init_seed == 0 ) {
-        std::random_device rd;
+        random_device rd;
         this->seed = rd();
     } else {
         this->seed = init_seed;
@@ -105,13 +110,13 @@ Mini_Batch Batch::pop(const unsigned int mini_batch_size) {
 
 void Batch::shuffle_dataset(const unsigned int seed) {
     // 置換行列を作成（各列と各行に唯一つの非ゼロ成分を持つ行列）
-    Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> perm_row(this->_batch_size);
+    PermutationMatrix<Dynamic, Dynamic> perm_row(this->_batch_size);
 
     // 対角要素に1をセット
     perm_row.setIdentity();
 
     // 置換行列をシャッフル
-    std::shuffle(perm_row.indices().data(), perm_row.indices().data() + perm_row.indices().size(), std::mt19937(seed));
+    shuffle(perm_row.indices().data(), perm_row.indices().data() + perm_row.indices().size(), mt19937(seed));
 
     // 左からかける
     this->_example = perm_row * this->_example;

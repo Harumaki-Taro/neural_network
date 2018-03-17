@@ -12,15 +12,18 @@
 using std::function;
 using std::cout;
 using std::endl;
-using Eigen::MatrixXf;
 using std::shared_ptr;
+using std::make_shared;
+using std::max;
+using std::min;
+using Eigen::MatrixXf;
 
 
 class Max_Pooling_Layer : public Layer {
 public:
     virtual void forwardprop(const vector< vector<MatrixXf> > X);
-    virtual void calc_delta(const std::shared_ptr<Layer> &next_layer,
-                            const std::shared_ptr<Layer> &prev_layer);
+    virtual void calc_delta(const shared_ptr<Layer> &next_layer,
+                            const shared_ptr<Layer> &prev_layer);
     virtual void allocate_memory(const int batch_size, const int prev_height, const int prev_width);
 
     Max_Pooling_Layer(const int channel_num,
@@ -83,8 +86,8 @@ void Max_Pooling_Layer::forwardprop(const vector< vector<MatrixXf> > X) {
         shared_ptr<MatrixXf> activated_ptr;
         shared_ptr<MatrixXf> X_ptr;
         for ( int k = 0; k < this->channel_num; ++k ) {
-            activated_ptr = std::make_shared<MatrixXf>(this->_activated[n][k]);
-            X_ptr = std::make_shared<MatrixXf>(X[n][k]);
+            activated_ptr = make_shared<MatrixXf>(this->_activated[n][k]);
+            X_ptr = make_shared<MatrixXf>(X[n][k]);
             for ( int p = 0; p < this->output_height; ++p ) {
                 h = p * this->stlide_height - this->padding_height;
                 for ( int q = 0; q < this->output_width; ++q ){
@@ -97,12 +100,12 @@ void Max_Pooling_Layer::forwardprop(const vector< vector<MatrixXf> > X) {
 }
 
 
-void Max_Pooling_Layer::calc_delta(const std::shared_ptr<Layer> &next_layer,
-                                   const std::shared_ptr<Layer> &prev_layer) {
-    std::shared_ptr< vector< vector<MatrixXf> > > next_delta
-        = std::make_shared< vector< vector<MatrixXf> > >(next_layer->delta);
-    std::shared_ptr< vector< vector<MatrixXf> > > prev_activated
-        = std::make_shared< vector< vector<MatrixXf> > >(prev_layer->_activated);
+void Max_Pooling_Layer::calc_delta(const shared_ptr<Layer> &next_layer,
+                                   const shared_ptr<Layer> &prev_layer) {
+    shared_ptr< vector< vector<MatrixXf> > > next_delta
+        = make_shared< vector< vector<MatrixXf> > >(next_layer->delta);
+    shared_ptr< vector< vector<MatrixXf> > > prev_activated
+        = make_shared< vector< vector<MatrixXf> > >(prev_layer->_activated);
 
     #pragma omp parallel for
     for ( int n = 0; n < this->batch_size; ++n ) {
@@ -119,21 +122,21 @@ void Max_Pooling_Layer::calc_delta(const std::shared_ptr<Layer> &next_layer,
         shared_ptr<MatrixXf> activated_ptr;
         shared_ptr<MatrixXf> next_delta_ptr;
         for ( int c = 0; c < this->channel_num; ++c ) {
-            delta_ptr = std::make_shared<MatrixXf>(this->delta[n][c]);
-            activated_ptr = std::make_shared<MatrixXf>(this->_activated[n][c]);
-            next_delta_ptr = std::make_shared<MatrixXf>((*next_delta)[n][c]);
-            prev_activated_ptr = std::make_shared<MatrixXf>((*prev_activated)[n][c]);
+            delta_ptr = make_shared<MatrixXf>(this->delta[n][c]);
+            activated_ptr = make_shared<MatrixXf>(this->_activated[n][c]);
+            next_delta_ptr = make_shared<MatrixXf>((*next_delta)[n][c]);
+            prev_activated_ptr = make_shared<MatrixXf>((*prev_activated)[n][c]);
             (*delta_ptr) = MatrixXf::Zero(this->input_height, this->input_width);
             for ( int h = 0; h < this->input_height; ++h ) {
-                P_min = std::max(0,
+                P_min = max(0,
                     (int)ceil((float)(h - this->filter_height + 1 + this->padding_height) / (float)this->stlide_height));
-                P_max = std::min(this->output_height-1,
+                P_max = min(this->output_height-1,
                     (int)floor((float)(h + this->padding_height) / (float)this->stlide_height));
                 part_r = h + this->padding_height;
                 for ( int w = 0; w < this->input_width; ++w ) {
-                    Q_min = std::max(0,
+                    Q_min = max(0,
                         (int)ceil((float)(w - this->filter_width + 1 + this->padding_width) / (float)this->stlide_width));
-                    Q_max = std::min(this->output_width-1,
+                    Q_max = min(this->output_width-1,
                         (int)floor((float)(w + this->padding_width) / (float)this->stlide_width));
                     part_s = w + this->padding_width;
                     for ( int p = P_min; p <= P_max; ++p ) {

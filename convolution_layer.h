@@ -13,16 +13,19 @@
 using std::function;
 using std::cout;
 using std::endl;
-using Eigen::MatrixXf;
+using std::make_shared;
+using std::max;
+using std::min;
 using std::shared_ptr;
+using Eigen::MatrixXf;
 
 
 class Convolution_Layer : public Layer {
 public:
     virtual void forwardprop(const vector< vector<MatrixXf> > X);
-    virtual void calc_differential(const std::shared_ptr<Layer> &prev_layer,
-                                   const std::shared_ptr<Layer> &next_layer);
-    virtual void calc_delta(const std::shared_ptr<Layer> &next_layer);
+    virtual void calc_differential(const shared_ptr<Layer> &prev_layer,
+                                   const shared_ptr<Layer> &next_layer);
+    virtual void calc_delta(const shared_ptr<Layer> &next_layer);
     virtual void allocate_memory(const int batch_size, const int prev_height, const int prev_width);
 
     Convolution_Layer(const function<MatrixXf(MatrixXf)> f,
@@ -135,7 +138,7 @@ void Convolution_Layer::forwardprop(const vector< vector<MatrixXf> > X) {
         shared_ptr<MatrixXf> X_ptr;
         shared_ptr<MatrixXf> W_ptr;
         for ( int k = 0; k < this->channel_num; ++k ) {
-            preActivate_ptr = std::make_shared<MatrixXf>(this->preActivate[n][k]);
+            preActivate_ptr = make_shared<MatrixXf>(this->preActivate[n][k]);
             // convolute
             for ( int p = 0; p < this->output_height; ++p ) {
                 part_h = p * this->stlide_height - this->padding_height;
@@ -143,8 +146,8 @@ void Convolution_Layer::forwardprop(const vector< vector<MatrixXf> > X) {
                     part_w = q * this->stlide_width - this->padding_width;
                     (*preActivate_ptr)(p, q) = this->b(0, k);
                     for ( int c = 0; c < this->prev_channel_num; ++c ) {
-                        X_ptr = std::make_shared<MatrixXf>(X[n][c]);
-                        W_ptr = std::make_shared<MatrixXf>(this->W[k][c]);
+                        X_ptr = make_shared<MatrixXf>(X[n][c]);
+                        W_ptr = make_shared<MatrixXf>(this->W[k][c]);
                         for ( int r = 0; r < this->filter_height; ++r ) {
                             h = part_h + r;
                             for ( int s = 0; s < this->filter_width; ++s ) {
@@ -162,9 +165,9 @@ void Convolution_Layer::forwardprop(const vector< vector<MatrixXf> > X) {
 }
 
 
-void Convolution_Layer::calc_delta(const std::shared_ptr<Layer> &next_layer) {
-    std::shared_ptr< vector< vector<MatrixXf> > > next_delta
-        = std::make_shared< vector< vector<MatrixXf> > >(next_layer->delta);
+void Convolution_Layer::calc_delta(const shared_ptr<Layer> &next_layer) {
+    shared_ptr< vector< vector<MatrixXf> > > next_delta
+        = make_shared< vector< vector<MatrixXf> > >(next_layer->delta);
     #pragma omp parallel for
     for ( int n = 0; n < this->batch_size; ++n ) {
         int P_max = 0;
@@ -180,30 +183,29 @@ void Convolution_Layer::calc_delta(const std::shared_ptr<Layer> &next_layer) {
         shared_ptr<MatrixXf> _d_f_ptr;
         shared_ptr<MatrixXf> W_ptr;
         for ( int c = 0; c < this->prev_channel_num; ++c ) {
-            delta_ptr = std::make_shared<MatrixXf>(delta[n][c]);
+            delta_ptr = make_shared<MatrixXf>(delta[n][c]);
             this->delta[n][c] = MatrixXf::Zero(this->input_height, this->input_width);
             for ( int h = 0; h < this->input_height; ++h ) {
-                P_min = std::max(0,
+                P_min = max(0,
                     (int)ceil((float)(h - this->filter_height + 1 + this->padding_height) / (float)this->stlide_height));
-                P_max = std::min(this->output_height-1,
+                P_max = min(this->output_height-1,
                     (int)floor((float)(h + this->padding_height) / (float)this->stlide_height));
                 part_r = h + this->padding_height;
                 for ( int w = 0; w < this->input_width; ++w ) {
-                    Q_min = std::max(0,
+                    Q_min = max(0,
                         (int)ceil((float)(w - this->filter_width + 1 + this->padding_width) / (float)this->stlide_width));
-                    Q_max = std::min(this->output_width-1,
+                    Q_max = min(this->output_width-1,
                         (int)floor((float)(w + this->padding_width) / (float)this->stlide_width));
                     part_s = w + this->padding_width;
                     for ( int k = 0; k < this->channel_num; ++k ) {
-                        next_delta_ptr = std::make_shared<MatrixXf>((*next_delta)[n][k]);
-                        W_ptr = std::make_shared<MatrixXf>(W[k][c]);
+                        next_delta_ptr = make_shared<MatrixXf>((*next_delta)[n][k]);
+                        W_ptr = make_shared<MatrixXf>(W[k][c]);
                         this->_d_f[n][k] = this->d_f(this->preActivate[n][k]);
-                        _d_f_ptr = std::make_shared<MatrixXf>(this->_d_f[n][k]);
+                        _d_f_ptr = make_shared<MatrixXf>(this->_d_f[n][k]);
                         for ( int p = P_min; p <= P_max; ++p ) {
                             r = part_r - p * this->stlide_height;
                             for ( int q = Q_min; q <= Q_max; ++q ) {
                                 s = part_s - q * this->stlide_width;
-                                // cout << n << " " << c << " " << h << " " << w << " " << k << " " << p << " " << q << " " << c << " " << r << " " << s << endl;
                                 (*delta_ptr)(h, w)
                                     += (*next_delta_ptr)(p, q) * (*_d_f_ptr)(p, q) * (*W_ptr)(r, s);
                             }
@@ -216,13 +218,13 @@ void Convolution_Layer::calc_delta(const std::shared_ptr<Layer> &next_layer) {
 }
 
 
-void Convolution_Layer::calc_differential(const std::shared_ptr<Layer> &prev_layer,
-                                          const std::shared_ptr<Layer> &next_layer) {
+void Convolution_Layer::calc_differential(const shared_ptr<Layer> &prev_layer,
+                                          const shared_ptr<Layer> &next_layer) {
 
-    std::shared_ptr< vector< vector<MatrixXf> > > next_delta
-        = std::make_shared< vector< vector<MatrixXf> > >(next_layer->delta);
-    std::shared_ptr< vector< vector<MatrixXf> > > prev_activated
-        = std::make_shared< vector< vector<MatrixXf> > >(prev_layer->_activated);
+    shared_ptr< vector< vector<MatrixXf> > > next_delta
+        = make_shared< vector< vector<MatrixXf> > >(next_layer->delta);
+    shared_ptr< vector< vector<MatrixXf> > > prev_activated
+        = make_shared< vector< vector<MatrixXf> > >(prev_layer->_activated);
     // W
     this->dE_db = MatrixXf::Zero(1, this->channel_num);
     #pragma omp parallel for
@@ -233,13 +235,13 @@ void Convolution_Layer::calc_differential(const std::shared_ptr<Layer> &prev_lay
         shared_ptr<MatrixXf> next_delta_ptr;
         shared_ptr<MatrixXf> prev_activated_ptr;
         for ( int c = 0; c < this->prev_channel_num; ++c ) {
-            dE_dW_ptr = std::make_shared<MatrixXf>(this->dE_dW[k][c]);
+            dE_dW_ptr = make_shared<MatrixXf>(this->dE_dW[k][c]);
             this->dE_dW[k][c] = MatrixXf::Zero(this->filter_height, this->filter_width);
             for ( int r = 0; r < this->filter_height; ++r ) {
                 for ( int s = 0; s < this->filter_width; ++s ) {
                     for ( int n = 0; n < this->batch_size; ++n ) {
-                        prev_activated_ptr = std::make_shared<MatrixXf>((*prev_activated)[n][c]);
-                        next_delta_ptr = std::make_shared<MatrixXf>((*next_delta)[n][k]);
+                        prev_activated_ptr = make_shared<MatrixXf>((*prev_activated)[n][c]);
+                        next_delta_ptr = make_shared<MatrixXf>((*next_delta)[n][k]);
                         for ( int q = 0; q < this->output_height; ++q ) {
                             w = q * this->stlide_width + s - this->padding_width;
                             for ( int p = 0; p < this->output_width; ++p ) {

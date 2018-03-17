@@ -9,6 +9,7 @@
 using std::function;
 using std::cout;
 using std::endl;
+using std::shared_ptr;
 using Eigen::MatrixXf;
 
 
@@ -18,13 +19,13 @@ public:
     virtual void forwardprop(const MatrixXf X) { cout << "使用禁止a3" << endl; exit(1); }
 
     virtual void calc_delta(const MatrixXf pred, const MatrixXf label) { cout << "使用禁止c" << endl; exit(1); }
-    virtual void calc_delta(const std::shared_ptr<Layer> &next_layer) { cout << "使用禁止c5" << endl; exit(1); }
-    virtual void calc_delta(const std::shared_ptr<Layer> &next_layer,
-                            const std::shared_ptr<Layer> &prev_layer) { cout << "使用禁止c6" << endl; exit(1); }
+    virtual void calc_delta(const shared_ptr<Layer> &next_layer) { cout << "使用禁止c5" << endl; exit(1); }
+    virtual void calc_delta(const shared_ptr<Layer> &next_layer,
+                            const shared_ptr<Layer> &prev_layer) { cout << "使用禁止c6" << endl; exit(1); }
 
-    virtual void calc_differential(const std::shared_ptr<Layer> &prev_layer,
-                                   const std::shared_ptr<Layer> &next_layer) { cout << "使用禁止d4" << endl; exit(1); }
-    virtual void calc_differential(const std::shared_ptr<Layer> &prev_layer) { cout << "使用禁止d5" << endl; exit(1); }
+    virtual void calc_differential(const shared_ptr<Layer> &prev_layer,
+                                   const shared_ptr<Layer> &next_layer) { cout << "使用禁止d4" << endl; exit(1); }
+    virtual void calc_differential(const shared_ptr<Layer> &prev_layer) { cout << "使用禁止d5" << endl; exit(1); }
 
     virtual void allocate_memory(const int batch_size) { cout << "使用禁止g" << endl; exit(1); }
     virtual void allocate_memory(const int batch_size,
@@ -36,15 +37,6 @@ public:
     virtual string get_type(void) { cout << "使用禁止j2" << endl; exit(1); return "0"; }
     virtual int get_batch_size(void) { cout << "使用禁止k" << endl; exit(1); return 1; }
     virtual bool get_use_bias(void) { cout << "使用禁止l" << endl; exit(1); return false; }
-    virtual vector<vector <MatrixXf> > get_bW(void) {
-        cout << "使用禁止m" << endl;
-        vector< vector<MatrixXf> > tmp;
-        tmp.resize(1); tmp[0].resize(1); tmp[0][0].resize(1,1); tmp[0][0](0,0) = 0.f; return tmp; }
-    virtual vector<vector <MatrixXf> > get_W(void) {
-        cout << "使用禁止n" << endl;
-        vector< vector<MatrixXf> > tmp;
-        tmp.resize(1); tmp[0].resize(1); tmp[0][0].resize(1,1); tmp[0][0](0,0) = 0.f; return tmp; }
-    virtual MatrixXf get_b(void) { cout << "使用禁止o" << endl; exit(1); return MatrixXf::Zero(1,1); }
     virtual int get_W_cols(void) { cout << "使用禁止p" << endl; exit(1); return 1; }
     virtual int get_W_rows(void) { cout << "使用禁止q" << endl; exit(1); return 1; }
     virtual vector< vector<MatrixXf> > get_activated(void) {
@@ -57,14 +49,6 @@ public:
         tmp.resize(1); tmp[0].resize(1); tmp[0][0] = MatrixXf::Zero(1,1); return tmp; }
     virtual function<MatrixXf(MatrixXf)> get_activateFunction(void) { cout << "使用禁止t" << endl; exit(1); return identity; }
     virtual function<MatrixXf(MatrixXf)> get_d_activateFunction(void) { cout << "使用禁止u" << endl; exit(1); return identity; }
-    virtual vector<vector <MatrixXf> > get_dE_dbW(void) {
-        cout << "使用禁止v" << endl;
-        vector< vector<MatrixXf> > tmp;
-        tmp.resize(1); tmp[0].resize(1); tmp[0][0] = MatrixXf::Zero(1,1); return tmp; }
-    virtual vector< vector<MatrixXf> > get_dE_dW(void) {
-        cout << "使用禁止vv" << endl;
-        vector< vector<MatrixXf> > tmp;
-        tmp.resize(1); tmp[0].resize(1); tmp[0][0] = MatrixXf::Zero(1,1); return tmp; }
     virtual vector<int> get_input_map_shape(void) {cout << "使用禁止v2" << endl; exit(1); vector<int> tmp; tmp.resize(1); tmp[0] = 0; return tmp; }
     virtual vector<int> get_output_map_shape(void) {cout << "使用禁止v3" << endl; exit(1); vector<int> tmp; tmp.resize(1); tmp[0] = 0; return tmp; }
 
@@ -80,8 +64,6 @@ public:
     virtual int get_prev_channel_num(void) { cout << "使用禁止ad" << endl; exit(1); return 1; }
     virtual vector<int>  get_filter_shape(void) { cout << "使用禁止ae" << endl; exit(1); vector<int> tmp; tmp.resize(1); tmp[0] = 0; return tmp; }
     // 子クラスのprivateへ移行予定
-    vector<vector <MatrixXf> > _dE_dbW;
-    vector<vector <MatrixXf> > bW;
     vector<vector <MatrixXf> > W;   // NOTE:convolutionしか使ってない問題
     vector< vector<MatrixXf> > dE_dW;   // NOTE:convolutionしか使ってない問題
     MatrixXf dE_db; // NOTE:convolutionしか使ってない問題
