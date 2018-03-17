@@ -183,8 +183,7 @@ void Convolution_Layer::calc_delta(const shared_ptr<Layer> &next_layer) {
         shared_ptr<MatrixXf> _d_f_ptr;
         shared_ptr<MatrixXf> W_ptr;
         for ( int c = 0; c < this->prev_channel_num; ++c ) {
-            delta_ptr = make_shared<MatrixXf>(delta[n][c]);
-            this->delta[n][c] = MatrixXf::Zero(this->input_height, this->input_width);
+            delta_ptr = make_shared<MatrixXf>(this->delta[n][c]);
             for ( int h = 0; h < this->input_height; ++h ) {
                 P_min = max(0,
                     (int)ceil((float)(h - this->filter_height + 1 + this->padding_height) / (float)this->stlide_height));
@@ -192,6 +191,7 @@ void Convolution_Layer::calc_delta(const shared_ptr<Layer> &next_layer) {
                     (int)floor((float)(h + this->padding_height) / (float)this->stlide_height));
                 part_r = h + this->padding_height;
                 for ( int w = 0; w < this->input_width; ++w ) {
+                    (*delta_ptr)(h, w) = 0.f;
                     Q_min = max(0,
                         (int)ceil((float)(w - this->filter_width + 1 + this->padding_width) / (float)this->stlide_width));
                     Q_max = min(this->output_width-1,
@@ -208,6 +208,8 @@ void Convolution_Layer::calc_delta(const shared_ptr<Layer> &next_layer) {
                                 s = part_s - q * this->stlide_width;
                                 (*delta_ptr)(h, w)
                                     += (*next_delta_ptr)(p, q) * (*_d_f_ptr)(p, q) * (*W_ptr)(r, s);
+                                // delta[n][c](h, w)
+                                //    += (*next_delta_ptr)(p, q) * (*_d_f_ptr)(p, q) * (*W_ptr)(r, s);
                             }
                         }
                     }

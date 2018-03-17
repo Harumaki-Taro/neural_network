@@ -26,6 +26,7 @@ using std::cout;
 using std::endl;
 using std::string;
 using std::vector;
+using std::max;
 using std::shared_ptr;
 using Eigen::MatrixXf;
 //
@@ -63,7 +64,10 @@ public:
 
     // debag
     void debag(const Mini_Batch mini_batch, const int point_num=3, const int calc_num_per_layer=100);
-    float central_difference(float& x, const Mini_Batch mini_batch, const int point_num=3);
+    float central_difference(const int layer_num, const int shape_0,
+                             const int shape_1, const int shape_2,
+                             const int shape_3, const Mini_Batch mini_batch,
+                             const int point_num=3);
 
     // getter
     vector< shared_ptr<Layer> > get_layers(void);
@@ -262,8 +266,8 @@ void Neural_Network::debag(const Mini_Batch mini_batch, const int point_num, con
                 vector<int> shape_3 = rand_array(calc_num_per_layer, 0, this->_layers[i]->W[0][0].cols()-1);
 
                 for ( int j = 0; j < calc_num_per_layer; j++ ) {
-                    nmc_diff.push_back(central_difference(this->_layers[i]->W[shape_0[j]][shape_1[j]](shape_2[j], shape_3[j]),
-                        mini_batch, point_num));
+                    nmc_diff.push_back(central_difference(i, shape_0[j], shape_1[j], shape_2[j], shape_3[j],
+                                                          mini_batch, point_num));
                     aut_diff.push_back(this->_layers[i]->dE_dW[shape_0[j]][shape_1[j]](shape_2[j], shape_3[j]));
                     mean_diff_diff += fabs(nmc_diff[j] - aut_diff[j]);
                 }
@@ -284,9 +288,8 @@ void Neural_Network::debag(const Mini_Batch mini_batch, const int point_num, con
                 vector<int> shape_3 = rand_array(calc_num_per_layer, 0, this->_layers[i]->W[0][0].cols()-1);
 
                 for ( int j = 0; j < calc_num_per_layer; j++ ) {
-                    nmc_diff.push_back(central_difference(this->_layers[i]->W[shape_0[j]][shape_1[j]](shape_2[j], shape_3[j]),
-                        mini_batch, point_num));
-                    aut_diff.push_back(this->_layers[i]->dE_dW[shape_0[j]][shape_1[j]](shape_2[j], shape_3[j]));
+                    nmc_diff.push_back(central_difference(i, shape_0[j], shape_1[j], shape_2[j], shape_3[j],
+                                                          mini_batch, point_num));                    aut_diff.push_back(this->_layers[i]->dE_dW[shape_0[j]][shape_1[j]](shape_2[j], shape_3[j]));
                     mean_diff_diff += fabs(nmc_diff[j] - aut_diff[j]);
                 }
                 mean_diff_diff /= (float)calc_num_per_layer;
@@ -305,26 +308,36 @@ void Neural_Network::debag(const Mini_Batch mini_batch, const int point_num, con
 }
 
 
-float Neural_Network::central_difference(float& x, const Mini_Batch mini_batch, const int point_num) {
-    float tmp = x;
-    float eps = sqrt(FLT_EPSILON) * fabs(tmp);
+float Neural_Network::central_difference(const int layer_num, const int shape_0,
+                                         const int shape_1, const int shape_2,
+                                         const int shape_3, const Mini_Batch mini_batch,
+                                         const int point_num) {
+
+    float tmp = this->_layers[layer_num]->W[shape_0][shape_1](shape_2, shape_3);
+    float eps;
+    float _eps = 0.01;
+    if ( fabs(tmp) * _eps > FLT_EPSILON ) {
+        eps = fabs(tmp) * _eps;
+    } else {
+        eps = FLT_EPSILON;
+    }
     float output;
 
     if ( point_num == 3 ) {
-        x = tmp - eps;
+        this->_layers[layer_num]->W[shape_0][shape_1](shape_2, shape_3) = tmp - eps;
         float left = this->calc_loss(mini_batch.example, mini_batch.label);
-        x = tmp + eps;
+        this->_layers[layer_num]->W[shape_0][shape_1](shape_2, shape_3) = tmp + eps;
         float right = this->calc_loss(mini_batch.example, mini_batch.label);
 
         output = (right - left) / (2.f * eps);
     } else if ( point_num == 5 ) {
-        x = tmp - 2.f * eps;
+        this->_layers[layer_num]->W[shape_0][shape_1](shape_2, shape_3) = tmp - 2.f * eps;
         float left_left = this->calc_loss(mini_batch.example, mini_batch.label);
-        x = tmp - eps;
+        this->_layers[layer_num]->W[shape_0][shape_1](shape_2, shape_3) = tmp - eps;
         float left = this->calc_loss(mini_batch.example, mini_batch.label);
-        x = tmp + eps;
+        this->_layers[layer_num]->W[shape_0][shape_1](shape_2, shape_3) = tmp + eps;
         float right = this->calc_loss(mini_batch.example, mini_batch.label);
-        x = tmp + 2.f * eps;
+        this->_layers[layer_num]->W[shape_0][shape_1](shape_2, shape_3) = tmp + 2.f * eps;
         float right_right = this->calc_loss(mini_batch.example, mini_batch.label);
 
         output = (left_left - 8.f * left + 8.f * right - right_right) / (12.f * eps);
@@ -332,7 +345,7 @@ float Neural_Network::central_difference(float& x, const Mini_Batch mini_batch, 
         cout << "対応していません" << endl;
         exit(1);
     }
-    x = tmp;
+    this->_layers[layer_num]->W[shape_0][shape_1](shape_2, shape_3) = tmp;
 
     return output;
 }

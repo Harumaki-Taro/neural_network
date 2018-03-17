@@ -126,7 +126,6 @@ void Max_Pooling_Layer::calc_delta(const shared_ptr<Layer> &next_layer,
             activated_ptr = make_shared<MatrixXf>(this->_activated[n][c]);
             next_delta_ptr = make_shared<MatrixXf>((*next_delta)[n][c]);
             prev_activated_ptr = make_shared<MatrixXf>((*prev_activated)[n][c]);
-            (*delta_ptr) = MatrixXf::Zero(this->input_height, this->input_width);
             for ( int h = 0; h < this->input_height; ++h ) {
                 P_min = max(0,
                     (int)ceil((float)(h - this->filter_height + 1 + this->padding_height) / (float)this->stlide_height));
@@ -134,6 +133,7 @@ void Max_Pooling_Layer::calc_delta(const shared_ptr<Layer> &next_layer,
                     (int)floor((float)(h + this->padding_height) / (float)this->stlide_height));
                 part_r = h + this->padding_height;
                 for ( int w = 0; w < this->input_width; ++w ) {
+                    (*delta_ptr)(h, w) = 0.f;
                     Q_min = max(0,
                         (int)ceil((float)(w - this->filter_width + 1 + this->padding_width) / (float)this->stlide_width));
                     Q_max = min(this->output_width-1,
