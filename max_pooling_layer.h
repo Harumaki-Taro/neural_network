@@ -83,16 +83,14 @@ void Max_Pooling_Layer::forwardprop(const vector< vector<MatrixXf> > X) {
     for ( int n = 0; n < this->batch_size; ++n ) {
         int h = 0;
         int w = 0;
-        shared_ptr<MatrixXf> activated_ptr;
         shared_ptr<MatrixXf> X_ptr;
         for ( int k = 0; k < this->channel_num; ++k ) {
-            activated_ptr = make_shared<MatrixXf>(this->_activated[n][k]);
             X_ptr = make_shared<MatrixXf>(X[n][k]);
             for ( int p = 0; p < this->output_height; ++p ) {
                 h = p * this->stlide_height - this->padding_height;
                 for ( int q = 0; q < this->output_width; ++q ){
                     w = q * this->stlide_width - this->padding_width;
-                    (*activated_ptr)(p, q) = (*X_ptr).block(h, w, this->filter_height, this->filter_width).maxCoeff();
+                    this->_activated[n][k](p, q) = (*X_ptr).block(h, w, this->filter_height, this->filter_width).maxCoeff();
                 }
             }
         }
@@ -117,12 +115,10 @@ void Max_Pooling_Layer::calc_delta(const shared_ptr<Layer> &next_layer,
         int s = 0;
         int part_r = 0;
         int part_s = 0;
-        shared_ptr<MatrixXf> delta_ptr;
         shared_ptr<MatrixXf> prev_activated_ptr;
         shared_ptr<MatrixXf> activated_ptr;
         shared_ptr<MatrixXf> next_delta_ptr;
         for ( int c = 0; c < this->channel_num; ++c ) {
-            delta_ptr = make_shared<MatrixXf>(this->delta[n][c]);
             activated_ptr = make_shared<MatrixXf>(this->_activated[n][c]);
             next_delta_ptr = make_shared<MatrixXf>((*next_delta)[n][c]);
             prev_activated_ptr = make_shared<MatrixXf>((*prev_activated)[n][c]);
@@ -133,7 +129,7 @@ void Max_Pooling_Layer::calc_delta(const shared_ptr<Layer> &next_layer,
                     (int)floor((float)(h + this->padding_height) / (float)this->stlide_height));
                 part_r = h + this->padding_height;
                 for ( int w = 0; w < this->input_width; ++w ) {
-                    (*delta_ptr)(h, w) = 0.f;
+                    this->delta[n][c](h, w) = 0.f;
                     Q_min = max(0,
                         (int)ceil((float)(w - this->filter_width + 1 + this->padding_width) / (float)this->stlide_width));
                     Q_max = min(this->output_width-1,
@@ -144,7 +140,7 @@ void Max_Pooling_Layer::calc_delta(const shared_ptr<Layer> &next_layer,
                         for ( int q = Q_min; q <= Q_max; ++q ) {
                             s = part_s - q * this->stlide_width;
                             if ( (*activated_ptr)(p, q) == (*prev_activated_ptr)(h, w) ) {
-                                (*delta_ptr)(h, w) += (*next_delta_ptr)(p, q);
+                                this->delta[n][c](h, w) += (*next_delta_ptr)(p, q);
                             }
                         }
                     }

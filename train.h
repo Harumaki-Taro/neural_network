@@ -10,6 +10,7 @@
 #include "neural_network.h"
 #include "loss.h"
 #include "sgd.h"
+#include "momentum.h"
 #include "optimizer.h"
 #include "batch.h"
 
@@ -25,7 +26,8 @@ using Eigen::MatrixXf;
 class Train {
 public:
     void update(Neural_Network& nn, Mini_Batch mini_batch, int i);
-    Train(Loss loss, SGD sgd);
+    Train(Loss loss, SGD opt);
+    Train(Loss loss, Momentum opt);
     // Neural_Network output(void);
 
     // Neural_Network nn;
@@ -36,25 +38,31 @@ private:
 };
 
 
-Train::Train(Loss loss, SGD sgd) {
+Train::Train(Loss loss, SGD opt) {
     this->loss = loss;
-    this->opt = std::make_shared<SGD>(sgd);
+    this->opt = std::make_shared<SGD>(opt);
 }
 
 
-void Train::update(Neural_Network& nn, Mini_Batch mini_batch, int i) {
+Train::Train(Loss loss, Momentum opt) {
+    this->loss = loss;
+    this->opt = std::make_shared<Momentum>(opt);
+}
+
+
+void Train::update(Neural_Network& nn, Mini_Batch mini_batch, int step) {
     std::chrono::system_clock::time_point  start, end;
     start = std::chrono::system_clock::now(); // 計測開始時間
 
     MatrixXf pred = nn.forwardprop(mini_batch.example);
     nn.backprop(pred, mini_batch.label);
-    this->opt->update(this->loss, nn);
+    this->opt->update(this->loss, nn, step);
 
     end = std::chrono::system_clock::now();  // 計測終了時間
 
-    if ( i % 100 == 0 ) {
+    if ( step % 1 == 0 ) {
         double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count(); //処理に要した時間をミリ秒に変換
-        cout << "step: " << i << "  " << "loss: " << nn.calc_loss_with_prev_pred(mini_batch.label) << " (" << elapsed << " msec)" << endl;
+        cout << "step: " << step << "  " << "loss: " << nn.calc_loss_with_prev_pred(mini_batch.label) << " (" << elapsed << " msec)" << endl;
     }
 }
 

@@ -20,7 +20,7 @@ public:
     float eps = 0.001;
 
     SGD(float learning_rate);
-    virtual void update(Loss &loss, Neural_Network& nn);
+    virtual void update(Loss &loss, Neural_Network& nn, int step);
 
 private:
     float learning_rate;
@@ -32,7 +32,7 @@ SGD::SGD(float learning_rate) {
 }
 
 
-void SGD::update(Loss &loss, Neural_Network& nn) {
+void SGD::update(Loss &loss, Neural_Network& nn, int step) {
     for ( int i = 0; i != (int)loss.get_nn_index().size(); i++ ) {
         int j = loss.get_nn_index()[i];
         if ( nn.get_layers()[j]->get_trainable() ) {
@@ -41,34 +41,25 @@ void SGD::update(Loss &loss, Neural_Network& nn) {
                     MatrixXf tmp = nn.get_layers()[j]->dE_dW[k][l];
 
                     for ( int m = 0; m < loss.get_terms().size(); m++ ) {
-                        if ( loss.get_terms()[m].name == "Lp_norm" && (std::find(loss.get_terms()[m].index.begin(), loss.get_terms()[m].index.end(), j) != loss.get_terms()[m].index.end()) ) {
-                            if ( loss.get_terms()[m].ord == 2 ) {
-                                tmp += loss.get_terms()[m].eps * nn.get_layers()[j]->W[k][l];
-                            } else {
-                                cout << "実装されていません。" << endl;
-                                exit(1);
-                            }
+                        if ( loss.get_terms()[m].name == "Lp_norm" ) {
+                            tmp += Lp_norm(loss.get_terms()[m], nn.get_layers()[j]->W[k][l], j);
                         }
                     }
                     nn.get_layers()[j]->W[k][l]
-                        = nn.get_layers()[j]->W[k][l] - this->learning_rate * tmp;
+                        -= this->learning_rate * tmp;
                 }
             }
         }
         if ( nn.get_layers()[j]->get_type() == "convolution_layer" ) {
             MatrixXf tmp = nn.get_layers()[j]->dE_db;
+
             for ( int m = 0; m < loss.get_terms().size(); m++ ) {
-                if ( loss.get_terms()[m].name == "Lp_norm" && (std::find(loss.get_terms()[m].index.begin(), loss.get_terms()[m].index.end(), j) != loss.get_terms()[m].index.end()) ) {
-                    if ( loss.get_terms()[m].ord == 2 ) {
-                        tmp += loss.get_terms()[m].eps * nn.get_layers()[j]->b;
-                    } else {
-                        cout << "実装されていません。" << endl;
-                        exit(1);
-                    }
+                if ( loss.get_terms()[m].name == "Lp_norm" ) {
+                    tmp += Lp_norm(loss.get_terms()[m], nn.get_layers()[j]->b, j);
                 }
             }
             nn.get_layers()[j]->b
-                = nn.get_layers()[j]->b - this->learning_rate * tmp;
+                -= this->learning_rate * tmp;
         }
     }
 }

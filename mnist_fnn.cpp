@@ -17,6 +17,7 @@
 #include "mnist.h"
 #include "loss.h"
 #include "sgd.h"
+#include "momentum.h"
 #include "train.h"
 
 using std::function;
@@ -37,7 +38,7 @@ int main(void) {
 
     // Define learning parameters.
     MatrixXf pred;
-    float learning_rate = 0.01;
+    float learning_rate = 0.0001;
     unsigned int mini_batch_size = 50;
     unsigned int epoch = 50000;
 
@@ -56,7 +57,7 @@ int main(void) {
     Loss loss(nn);
     loss.add_LpNorm(0.001, 2);
 
-    SGD opt(learning_rate);
+    Momentum opt(learning_rate);
     Train train(loss, opt);
 
     for ( unsigned int i = 0; i < epoch; i++ ) {

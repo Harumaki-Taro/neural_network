@@ -28,9 +28,7 @@ public:
     virtual void calc_delta(const shared_ptr<Layer> &next_layer);
     virtual void allocate_memory(const int batch_size, const int prev_height, const int prev_width);
 
-    Convolution_Layer(const function<MatrixXf(MatrixXf)> f,
-                      const function<MatrixXf(MatrixXf)> d_f,
-                      const int prev_ch, const int ch,
+    Convolution_Layer(const int prev_ch, const int ch,
                       const int filter_height, const int filter_width,
                       const int stlide_height=1, const int stlide_width=1,
                       const int padding_height=0, const int padding_width=0,
@@ -49,11 +47,8 @@ public:
     vector<int> get_output_map_shape(void);
     vector<vector <MatrixXf> > get_W(void);
     MatrixXf get_b(void);
-    vector< vector<MatrixXf> > get_preActivate(void);
     virtual vector< vector<MatrixXf> > get_activated(void);
     virtual vector<vector <MatrixXf> > get_delta(void);
-    virtual function<MatrixXf(MatrixXf)> get_activateFunction(void);
-    virtual function<MatrixXf(MatrixXf)> get_d_activateFunction(void);
     virtual vector< vector<MatrixXf> > get_dE_dW(void);
     MatrixXf get_dE_db(void);
 
@@ -62,8 +57,6 @@ public:
     // virtual void set_W(MatrixXf);
     // virtual void set_b(MatrixXf);
     virtual void set_delta(const vector< vector<MatrixXf> > delta);
-    virtual void set_activateFunction(const function<MatrixXf(MatrixXf)> f);
-    virtual void set_d_activateFunction(const function<MatrixXf(MatrixXf)> d_f);
 
 
 private:
@@ -93,7 +86,6 @@ private:
     string initializer;
     function<MatrixXf(MatrixXf)> f;
     function<MatrixXf(MatrixXf)> d_f;
-    vector< vector<MatrixXf> > preActivate;
     // Storage during learning
     MatrixXf _preActivate;
 };
@@ -101,9 +93,7 @@ private:
 
 // NOTE: Wの初期化どうしよう問題
 // HeやXavierのせいで一旦allocate_memoryに行ってしまったが、これだと一様分布で初期化できなくなってしまう。
-Convolution_Layer::Convolution_Layer(const function<MatrixXf(MatrixXf)> f,
-                                     const function<MatrixXf(MatrixXf)> d_f,
-                                     const int prev_ch, const int ch,
+Convolution_Layer::Convolution_Layer(const int prev_ch, const int ch,
                                      const int filter_height, const int filter_width,
                                      const int stlide_height, const int stlide_width,
                                      const int padding_height, const int padding_width,
@@ -122,8 +112,6 @@ Convolution_Layer::Convolution_Layer(const function<MatrixXf(MatrixXf)> f,
     this->padding_height = padding_height;
     this->padding_width = padding_width;
     this->initializer = initializer;
-    this->f = f;
-    this->d_f = d_f;
 }
 
 
@@ -134,17 +122,15 @@ void Convolution_Layer::forwardprop(const vector< vector<MatrixXf> > X) {
         int w = 0;
         int part_h = 0;
         int part_w = 0;
-        shared_ptr<MatrixXf> preActivate_ptr;
         shared_ptr<MatrixXf> X_ptr;
         shared_ptr<MatrixXf> W_ptr;
         for ( int k = 0; k < this->channel_num; ++k ) {
-            preActivate_ptr = make_shared<MatrixXf>(this->preActivate[n][k]);
             // convolute
             for ( int p = 0; p < this->output_height; ++p ) {
                 part_h = p * this->stlide_height - this->padding_height;
                 for ( int q = 0; q < this->output_width; ++q ){
                     part_w = q * this->stlide_width - this->padding_width;
-                    (*preActivate_ptr)(p, q) = this->b(0, k);
+                    this->_activated[n][k](p, q) = this->b(0, k);
                     for ( int c = 0; c < this->prev_channel_num; ++c ) {
                         X_ptr = make_shared<MatrixXf>(X[n][c]);
                         W_ptr = make_shared<MatrixXf>(this->W[k][c]);
@@ -152,14 +138,12 @@ void Convolution_Layer::forwardprop(const vector< vector<MatrixXf> > X) {
                             h = part_h + r;
                             for ( int s = 0; s < this->filter_width; ++s ) {
                                 w = part_w + s;
-                                (*preActivate_ptr)(p, q) += (*X_ptr)(h, w) * (*W_ptr)(r, s);
+                                this->_activated[n][k](p, q) += (*X_ptr)(h, w) * (*W_ptr)(r, s);
                             }
                         }
                     }
                 }
             }
-            // activate
-            this->_activated[n][k] = this->f(*preActivate_ptr);
         }
     }
 }
@@ -178,12 +162,9 @@ void Convolution_Layer::calc_delta(const shared_ptr<Layer> &next_layer) {
         int s = 0;
         int part_r = 0;
         int part_s = 0;
-        shared_ptr<MatrixXf> delta_ptr;
         shared_ptr<MatrixXf> next_delta_ptr;
-        shared_ptr<MatrixXf> _d_f_ptr;
         shared_ptr<MatrixXf> W_ptr;
         for ( int c = 0; c < this->prev_channel_num; ++c ) {
-            delta_ptr = make_shared<MatrixXf>(this->delta[n][c]);
             for ( int h = 0; h < this->input_height; ++h ) {
                 P_min = max(0,
                     (int)ceil((float)(h - this->filter_height + 1 + this->padding_height) / (float)this->stlide_height));
@@ -191,7 +172,7 @@ void Convolution_Layer::calc_delta(const shared_ptr<Layer> &next_layer) {
                     (int)floor((float)(h + this->padding_height) / (float)this->stlide_height));
                 part_r = h + this->padding_height;
                 for ( int w = 0; w < this->input_width; ++w ) {
-                    (*delta_ptr)(h, w) = 0.f;
+                    this->delta[n][c](h, w) = 0.f;
                     Q_min = max(0,
                         (int)ceil((float)(w - this->filter_width + 1 + this->padding_width) / (float)this->stlide_width));
                     Q_max = min(this->output_width-1,
@@ -199,17 +180,13 @@ void Convolution_Layer::calc_delta(const shared_ptr<Layer> &next_layer) {
                     part_s = w + this->padding_width;
                     for ( int k = 0; k < this->channel_num; ++k ) {
                         next_delta_ptr = make_shared<MatrixXf>((*next_delta)[n][k]);
-                        W_ptr = make_shared<MatrixXf>(W[k][c]);
-                        this->_d_f[n][k] = this->d_f(this->preActivate[n][k]);
-                        _d_f_ptr = make_shared<MatrixXf>(this->_d_f[n][k]);
+                        W_ptr = make_shared<MatrixXf>(this->W[k][c]);
                         for ( int p = P_min; p <= P_max; ++p ) {
                             r = part_r - p * this->stlide_height;
                             for ( int q = Q_min; q <= Q_max; ++q ) {
                                 s = part_s - q * this->stlide_width;
-                                (*delta_ptr)(h, w)
-                                    += (*next_delta_ptr)(p, q) * (*_d_f_ptr)(p, q) * (*W_ptr)(r, s);
-                                // delta[n][c](h, w)
-                                //    += (*next_delta_ptr)(p, q) * (*_d_f_ptr)(p, q) * (*W_ptr)(r, s);
+                                this->delta[n][c](h, w)
+                                    += (*next_delta_ptr)(p, q) * (*W_ptr)(r, s);
                             }
                         }
                     }
@@ -233,11 +210,9 @@ void Convolution_Layer::calc_differential(const shared_ptr<Layer> &prev_layer,
     for ( int k = 0; k < this->channel_num; ++k ) {
         int h = 0;
         int w = 0;
-        shared_ptr<MatrixXf> dE_dW_ptr;
         shared_ptr<MatrixXf> next_delta_ptr;
         shared_ptr<MatrixXf> prev_activated_ptr;
         for ( int c = 0; c < this->prev_channel_num; ++c ) {
-            dE_dW_ptr = make_shared<MatrixXf>(this->dE_dW[k][c]);
             this->dE_dW[k][c] = MatrixXf::Zero(this->filter_height, this->filter_width);
             for ( int r = 0; r < this->filter_height; ++r ) {
                 for ( int s = 0; s < this->filter_width; ++s ) {
@@ -248,7 +223,7 @@ void Convolution_Layer::calc_differential(const shared_ptr<Layer> &prev_layer,
                             w = q * this->stlide_width + s - this->padding_width;
                             for ( int p = 0; p < this->output_width; ++p ) {
                                 h = p * this->stlide_height + r - this->padding_height;
-                                (*dE_dW_ptr)(r, s) += (*next_delta_ptr)(p, q) * (*prev_activated_ptr)(h, w);
+                                this->dE_dW[k][c](r, s) += (*next_delta_ptr)(p, q) * (*prev_activated_ptr)(h, w);
                                 this->dE_db(0, k) += (*next_delta_ptr)(p, q);
                             }
                         }
@@ -283,13 +258,10 @@ void Convolution_Layer::allocate_memory(const int batch_size, const int prev_hei
 
     // preActivate & activated
     for ( int i = 0; i < this->batch_size; i++ ) {
-        vector<MatrixXf> tmp_pre_Activate;
         vector<MatrixXf> tmp_activated;
         for ( int j = 0; j < this->channel_num; j++ ) {
-            tmp_pre_Activate.push_back(MatrixXf::Zero(this->output_height, this->output_width));
             tmp_activated.push_back(MatrixXf::Zero(this->output_height, this->output_width));
         }
-        this->preActivate.push_back(tmp_pre_Activate);
         this->_activated.push_back(tmp_activated);
     }
 
@@ -353,11 +325,8 @@ vector<int> Convolution_Layer::get_output_map_shape(void) {
 }
 vector<vector <MatrixXf> > Convolution_Layer::get_W(void) { return this->W; }
 MatrixXf Convolution_Layer::get_b(void) {return this->b; }
-vector< vector<MatrixXf> > Convolution_Layer::get_preActivate(void) { return this->preActivate; }
 vector< vector<MatrixXf> > Convolution_Layer::get_activated(void) { return this->_activated; }
 vector< vector<MatrixXf> > Convolution_Layer::get_delta(void) { return this->delta; }
-function<MatrixXf(MatrixXf)> Convolution_Layer::get_activateFunction(void) { return this->f; }
-function<MatrixXf(MatrixXf)> Convolution_Layer::get_d_activateFunction(void) { return this->d_f; }
 vector< vector<MatrixXf> > Convolution_Layer::get_dE_dW(void) { return this->dE_dW; }
 MatrixXf Convolution_Layer::get_dE_db(void) {return this->dE_db; }
 
@@ -368,12 +337,6 @@ void Convolution_Layer::set_batch_size(const int batch_size, const int prev_heig
 
 void Convolution_Layer::set_delta(const vector< vector<MatrixXf> > delta) {
     this->delta = delta;
-}
-void Convolution_Layer::set_activateFunction(const function<MatrixXf(MatrixXf)> f) {
-    this->f = f;
-}
-void Convolution_Layer::set_d_activateFunction(const function<MatrixXf(MatrixXf)> d_f) {
-    this->d_f = d_f;
 }
 
 

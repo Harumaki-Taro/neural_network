@@ -16,9 +16,25 @@ using Eigen::MatrixXf;
 
 class Optimizer {
 public:
-    virtual void update(Loss &loss, Neural_Network& nn) { cout << "opt使用禁止" << endl; exit(1); }
+    virtual void update(Loss &loss, Neural_Network& nn, int step) { cout << "opt使用禁止" << endl; exit(1); }
 
 };
+
+
+MatrixXf Lp_norm(Term term, MatrixXf W, int layer_num) {
+    MatrixXf output;
+
+    if ( std::find(term.index.begin(), term.index.end(), layer_num) != term.index.end() ) {
+        if ( term.ord == 2 ) {
+            output = term.eps * W;
+        } else {
+            cout << "実装されていません。" << endl;
+            exit(1);
+        }
+    }
+
+    return output;
+}
 
 
 #endif // INCLUDE_optimizer_h_

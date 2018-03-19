@@ -55,7 +55,7 @@ void En_Tensor_Layer::forwardprop(const vector< vector<MatrixXf> > X) {
             for ( int h = 0; h < this->output_height; h++ ) {
                 for ( int w = 0; w < this->output_width; w++ ) {
                     this->_activated[n][k](h, w)
-                        = X[0][0](n, this->channel_num * this->output_height * k + this->output_height * h + w);
+                        = X[0][0](n, this->output_height * this->output_width * k + this->output_width * h + w);
                 }
             }
         }
@@ -70,10 +70,9 @@ void En_Tensor_Layer::calc_delta(const shared_ptr<Layer> &next_layer) {
         int tmp;
         for ( int k = 0; k <this->channel_num; k++ ) {
             next_delta = make_shared<MatrixXf>(next_layer->delta[n][k]);
-            tmp = this->channel_num * this->output_height * k;
             for ( int p = 0; p < this->output_height; p++ ) {
                 for ( int q = 0; q < this->output_width; q++ ) {
-                    this->delta[0][0](n, tmp + this->output_height * p + q)
+                    this->delta[0][0](n, this->output_height * this->output_width * k + this->output_width * p + q)
                         =  (*next_delta)(p, q);
                 }
             }

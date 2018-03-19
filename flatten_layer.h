@@ -55,7 +55,7 @@ void Flatten_Layer::forwardprop(const vector< vector<MatrixXf> > X) {
         for ( int c = 0; c < this->prev_channel_num; c++ ) {
             for ( int h = 0; h < this->input_height; h++ ) {
                 for ( int w = 0; w < this->input_width; w++ ) {
-                    this->_activated[0][0](n, this->prev_channel_num * this->input_height * c + this->input_height * h + w)
+                    this->_activated[0][0](n, this->input_height * this->input_width * c + this->input_width * h + w)
                         = X[n][c](h, w);
                 }
             }
@@ -77,7 +77,7 @@ void Flatten_Layer::calc_delta(const shared_ptr<Layer> &next_layer) {
             for ( int h = 0; h < this->input_height; h++ ) {
                 for ( int w = 0; w < this->input_width; w++ ) {
                     this->delta[n][c](h, w)
-                        = tmp[0][0](n, this->prev_channel_num * this->input_height * c + this->input_height * h + w);
+                        = tmp[0][0](n, this->input_height * this->input_width * c + this->input_width * h + w);
                 }
             }
         }
