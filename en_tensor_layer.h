@@ -21,19 +21,23 @@ class En_Tensor_Layer : public Layer {
 public:
     virtual void forwardprop(const vector< vector<MatrixXf> > X);
     virtual void calc_delta(const shared_ptr<Layer> &next_layer);
-    virtual void allocate_memory(const int batch_size);
+    virtual void allocate_memory(const int batch_size, const shared_ptr<Layer> &prev_layer);
 
     En_Tensor_Layer(const int channel_num, const int height, const int width);
 
     // getter
     virtual bool get_trainable(void);
     virtual string get_type(void);
+    virtual bool get_is_tensor(void);
+    virtual int get_unit_num(void);
     virtual vector< vector<MatrixXf> > get_activated(void);
     virtual vector<int> get_output_map_shape(void);
 
 private:
     bool trainable = false;
     const string type = "en_tensor_layer";
+    const bool is_tensor = true;
+    int unit_num;
     int channel_num;
     int output_height;
     int output_width;
@@ -67,7 +71,6 @@ void En_Tensor_Layer::calc_delta(const shared_ptr<Layer> &next_layer) {
     #pragma omp parallel for
     for ( int n = 0; n < this->batch_size; n++ ) {
         shared_ptr<MatrixXf> next_delta;
-        int tmp;
         for ( int k = 0; k <this->channel_num; k++ ) {
             next_delta = make_shared<MatrixXf>(next_layer->delta[n][k]);
             for ( int p = 0; p < this->output_height; p++ ) {
@@ -81,8 +84,9 @@ void En_Tensor_Layer::calc_delta(const shared_ptr<Layer> &next_layer) {
 }
 
 
-void En_Tensor_Layer::allocate_memory(const int batch_size) {
+void En_Tensor_Layer::allocate_memory(const int batch_size, const shared_ptr<Layer> &prev_layer) {
     this->batch_size = batch_size;
+    this->unit_num = this->channel_num * this->output_height * this->output_width;
     this->_activated.resize(this->batch_size);
     for ( int n = 0; n < this->batch_size; n++ ) {
         this->_activated[n].resize(this->channel_num);
@@ -98,6 +102,8 @@ void En_Tensor_Layer::allocate_memory(const int batch_size) {
 
 bool En_Tensor_Layer::get_trainable(void) { return this->trainable; }
 string En_Tensor_Layer::get_type(void) { return this->type; }
+bool En_Tensor_Layer::get_is_tensor(void) { return this->is_tensor; }
+int En_Tensor_Layer::get_unit_num(void) { return this->unit_num; }
 vector< vector<MatrixXf> > En_Tensor_Layer::get_activated(void) {
     return this->_activated;
 }

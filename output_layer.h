@@ -21,7 +21,7 @@ public:
     void build_layer(const function<MatrixXf(MatrixXf)> f,
                      const function<MatrixXf(MatrixXf, MatrixXf)> delta_f,
                      const int class_num);
-    virtual void allocate_memory(int);
+    virtual void allocate_memory(const int batch_size, const shared_ptr<Layer> &prev_layer);
 
     Output_Layer(const function<MatrixXf(MatrixXf)> f,
                  const function<float(MatrixXf, MatrixXf)> loss_func,
@@ -31,6 +31,8 @@ public:
     // getter
     virtual bool get_trainable(void);
     virtual string get_type(void);
+    virtual bool get_is_tensor(void);
+    virtual int get_unit_num(void);
     virtual int get_batch_size(void);
     virtual vector<vector <MatrixXf> > get_activated(void);
     virtual vector<vector <MatrixXf> > get_delta(void);
@@ -39,7 +41,7 @@ public:
     function<MatrixXf(MatrixXf, MatrixXf)> get_deltaFunction(void);
 
     // setter
-    virtual void set_batch_size(const int batch_size);
+    virtual void set_batch_size(const int batch_size, const shared_ptr<Layer> &prev_layer);
     virtual void set_delta(const vector<vector <MatrixXf> > delta);
     virtual void set_activateFunction(const function<MatrixXf(MatrixXf)> f);
     virtual void set_lossFunction(const function<float(MatrixXf, MatrixXf)> f);
@@ -48,6 +50,8 @@ public:
 private:
     bool _trainable = false;
     const string type = "output_layer";
+    const bool is_tensor = false;
+    int unit_num;
     // Parameters tracked during learning
     vector<vector <MatrixXf> > delta;
     // Parameters specified at first
@@ -80,7 +84,7 @@ void Output_Layer::calc_delta(const MatrixXf pred, const MatrixXf label) {
 }
 
 
-void Output_Layer::allocate_memory(const int batch_size) {
+void Output_Layer::allocate_memory(const int batch_size, const shared_ptr<Layer> &prev_layer) {
     this->batch_size = batch_size;
 
     this->delta.resize(1); this->delta[0].resize(1);
@@ -93,6 +97,8 @@ void Output_Layer::allocate_memory(const int batch_size) {
 
 bool Output_Layer::get_trainable(void) { return this->_trainable; }
 string Output_Layer::get_type(void) { return this->type; }
+bool Output_Layer::get_is_tensor(void) { return this->is_tensor; }
+int Output_Layer::get_unit_num(void) { return this->unit_num; }
 int Output_Layer::get_batch_size(void) { return this->batch_size; }
 vector<vector <MatrixXf> > Output_Layer::get_activated(void) { return this->_activated; }
 vector<vector <MatrixXf> > Output_Layer::get_delta(void) { return this->delta; }
@@ -101,8 +107,8 @@ function<float(MatrixXf, MatrixXf)> Output_Layer::get_lossFunction(void) { retur
 function<MatrixXf(MatrixXf, MatrixXf)> Output_Layer::get_deltaFunction(void) { return this->delta_f; }
 
 
-void Output_Layer::set_batch_size(const int batch_size) {
-    this->allocate_memory(batch_size);
+void Output_Layer::set_batch_size(const int batch_size, const shared_ptr<Layer> &prev_layer) {
+    this->allocate_memory(batch_size, prev_layer);
 }
 void Output_Layer::set_delta(vector<vector <MatrixXf> > delta) {
     this->delta = delta;

@@ -20,13 +20,15 @@ class Flatten_Layer : public Layer {
 public:
     virtual void forwardprop(const vector< vector<MatrixXf> > next_delta);
     virtual void calc_delta(const shared_ptr<Layer> &next_layer);
-    virtual void allocate_memory(const int batch_size);
+    virtual void allocate_memory(const int batch_size, const shared_ptr<Layer> &prev_layer);
 
     Flatten_Layer(const int channel_num, const int height, const int width);
 
     // getter
     virtual bool get_trainable(void);
     virtual string get_type(void);
+    virtual bool get_is_tensor(void);
+    virtual int get_unit_num(void);
     virtual vector< vector<MatrixXf> > get_activated(void);
     virtual vector<int> get_input_map_shape(void);
     virtual vector< vector<MatrixXf> > get_delta(void);
@@ -35,6 +37,8 @@ public:
 private:
     bool trainable = false;
     const string type = "flatten_layer";
+    const bool is_tensor = false;
+    int unit_num;
     int prev_channel_num;
     int input_height;
     int input_width;
@@ -85,8 +89,9 @@ void Flatten_Layer::calc_delta(const shared_ptr<Layer> &next_layer) {
 }
 
 
-void Flatten_Layer::allocate_memory(const int batch_size) {
+void Flatten_Layer::allocate_memory(const int batch_size, const shared_ptr<Layer> &prev_layer) {
     this->batch_size = batch_size;
+    this->unit_num = this->prev_channel_num * this->input_height * this->input_width;
 
     this->_activated.resize(1); this->_activated[0].resize(1);
     this->_activated[0][0].resize(this->batch_size, this->prev_channel_num*this->input_height*this->input_width);
@@ -103,6 +108,8 @@ void Flatten_Layer::allocate_memory(const int batch_size) {
 
 bool Flatten_Layer::get_trainable(void) { return this->trainable; }
 string Flatten_Layer::get_type(void) { return this->type; }
+bool Flatten_Layer::get_is_tensor(void) { return this->is_tensor; }
+int Flatten_Layer::get_unit_num(void) { return this->unit_num; }
 vector< vector<MatrixXf> > Flatten_Layer::get_activated(void) { return this->_activated; }
 vector<int> Flatten_Layer::get_input_map_shape(void) {
     vector<int> input_map_shape{ this->input_height, this->input_width };

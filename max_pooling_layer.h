@@ -24,7 +24,7 @@ public:
     virtual void forwardprop(const vector< vector<MatrixXf> > X);
     virtual void calc_delta(const shared_ptr<Layer> &next_layer,
                             const shared_ptr<Layer> &prev_layer);
-    virtual void allocate_memory(const int batch_size, const int prev_height, const int prev_width);
+    virtual void allocate_memory(const int batch_size, const shared_ptr<Layer> &prev_layer);
 
     Max_Pooling_Layer(const int channel_num,
                       const int filter_height, const int filter_width,
@@ -34,6 +34,8 @@ public:
     // getter
     virtual bool get_trainable(void);
     virtual string get_type(void);
+    virtual bool get_is_tensor(void);
+    virtual int get_unit_num(void);
     virtual int get_batch_size(void);
     virtual int get_channel_num(void);
     virtual vector<int> get_output_map_shape(void);
@@ -48,7 +50,9 @@ public:
 
 private:
     bool trainable = false;
-    string type = "max_pooling_layer";
+    const string type = "max_pooling_layer";
+    const bool is_tensor = true;
+    int unit_num;
     int batch_size;
     int channel_num;
     int input_height;
@@ -151,14 +155,13 @@ void Max_Pooling_Layer::calc_delta(const shared_ptr<Layer> &next_layer,
 }
 
 
-void Max_Pooling_Layer::allocate_memory(const int batch_size,
-                                        const int input_height,
-                                        const int input_width) {
+void Max_Pooling_Layer::allocate_memory(const int batch_size, const shared_ptr<Layer> &prev_layer) {
     this->batch_size = batch_size;
-    this->input_height = input_height;
-    this->input_width = input_width;
+    this->input_height = prev_layer->get_output_map_shape()[0];
+    this->input_width = prev_layer->get_output_map_shape()[1];
     this->output_height = ceil((input_height - this->filter_height + 1 + 2 * this->padding_height) / this->stlide_height);
     this->output_width = ceil((input_width - this->filter_width + 1 + 2 * this->padding_width) / this->stlide_width);
+    this->unit_num = this->channel_num * this->output_height * this->output_width;
 
 
     // activated & delta
@@ -183,6 +186,8 @@ void Max_Pooling_Layer::allocate_memory(const int batch_size,
 
 bool Max_Pooling_Layer::get_trainable(void) { return this->trainable; }
 string Max_Pooling_Layer::get_type(void) { return this->type; }
+bool Max_Pooling_Layer::get_is_tensor(void) { return this->is_tensor; }
+int Max_Pooling_Layer::get_unit_num(void) { return this->unit_num; }
 int Max_Pooling_Layer::get_batch_size(void) { return this->batch_size; }
 int Max_Pooling_Layer::get_channel_num(void) { return this->channel_num; }
 vector<int> Max_Pooling_Layer::get_input_map_shape(void) {

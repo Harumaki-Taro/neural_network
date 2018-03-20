@@ -26,7 +26,7 @@ public:
     virtual void calc_differential(const shared_ptr<Layer> &prev_layer,
                                    const shared_ptr<Layer> &next_layer);
     virtual void calc_delta(const shared_ptr<Layer> &next_layer);
-    virtual void allocate_memory(const int batch_size, const int prev_height, const int prev_width);
+    virtual void allocate_memory(const int batch_size, const shared_ptr<Layer> &prev_layer);
 
     Convolution_Layer(const int prev_ch, const int ch,
                       const int filter_height, const int filter_width,
@@ -37,6 +37,8 @@ public:
     // getter
     virtual bool get_trainable(void);
     virtual string get_type(void);
+    virtual bool get_is_tensor(void);
+    virtual int get_unit_num(void);
     virtual int get_batch_size(void);
     virtual int get_channel_num(void);
     virtual int get_prev_channel_num(void);
@@ -53,7 +55,7 @@ public:
     MatrixXf get_dE_db(void);
 
     // setter
-    virtual void set_batch_size(const int batch_size, const int prev_cols, const int prev_rows);
+    virtual void set_batch_size(const int batch_size, const shared_ptr<Layer> &prev_layer);
     // virtual void set_W(MatrixXf);
     // virtual void set_b(MatrixXf);
     virtual void set_delta(const vector< vector<MatrixXf> > delta);
@@ -62,6 +64,8 @@ public:
 private:
     bool trainable = true;
     const string type = "convolution_layer";
+    const bool is_tensor = true;
+    int unit_num;
     // Parameters tracked during learning
     vector <vector<MatrixXf> > _d_f;
     // vector<vector <MatrixXf> > W;   // NOTE:convolutionしか使ってない問題
@@ -237,12 +241,13 @@ void Convolution_Layer::calc_differential(const shared_ptr<Layer> &prev_layer,
 }
 
 
-void Convolution_Layer::allocate_memory(const int batch_size, const int prev_height, const int prev_width) {
+void Convolution_Layer::allocate_memory(const int batch_size, const shared_ptr<Layer> &prev_layer) {
     this->batch_size = batch_size;
-    this->input_height = prev_height;
-    this->input_width = prev_width;
-    this->output_height = ceil((prev_height - this->filter_height + 1 + 2 * this->padding_height) / this->stlide_height);
-    this->output_width = ceil((prev_width - this->filter_width + 1 + 2 * this->padding_width) / this->stlide_width);
+    this->input_height = prev_layer->get_output_map_shape()[0];
+    this->input_width = prev_layer->get_output_map_shape()[0];
+    this->output_height = ceil((this->input_height - this->filter_height + 1 + 2 * this->padding_height) / this->stlide_height);
+    this->output_width = ceil((this->input_width - this->filter_width + 1 + 2 * this->padding_width) / this->stlide_width);
+    this->unit_num = this->channel_num * this->output_height * this->output_width;
 
     // Define weight and bias at random.
     if ( initializer == "Xavier" ) {
@@ -299,6 +304,8 @@ void Convolution_Layer::allocate_memory(const int batch_size, const int prev_hei
 
 bool Convolution_Layer::get_trainable(void) { return this->trainable; }
 string Convolution_Layer::get_type(void) { return this->type; }
+bool Convolution_Layer::get_is_tensor(void) { return this->is_tensor; }
+int Convolution_Layer::get_unit_num(void) { return this->unit_num; }
 int Convolution_Layer::get_batch_size(void) { return this->batch_size; }
 int Convolution_Layer::get_channel_num(void) { return this->channel_num; }
 int Convolution_Layer::get_prev_channel_num(void) { return this->prev_channel_num; }
@@ -331,8 +338,8 @@ vector< vector<MatrixXf> > Convolution_Layer::get_dE_dW(void) { return this->dE_
 MatrixXf Convolution_Layer::get_dE_db(void) {return this->dE_db; }
 
 
-void Convolution_Layer::set_batch_size(const int batch_size, const int prev_height, const int prev_width) {
-    this->allocate_memory(batch_size, prev_height, prev_width);
+void Convolution_Layer::set_batch_size(const int batch_size, const shared_ptr<Layer> &prev_layer) {
+    this->allocate_memory(batch_size, prev_layer);
 }
 
 void Convolution_Layer::set_delta(const vector< vector<MatrixXf> > delta) {

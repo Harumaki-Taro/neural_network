@@ -17,7 +17,7 @@
 #include "max_pooling_layer.h"
 #include "input_layer.h"
 #include "output_layer.h"
-#include "tensor_activate_layer.h"
+#include "activate_layer.h"
 #include "my_math.h"
 #include "batch.h"
 #include <chrono>
@@ -53,7 +53,7 @@ public:
     void add_layer(Max_Pooling_Layer);
     void add_layer(En_Tensor_Layer);
     void add_layer(Flatten_Layer);
-    void add_layer(Tensor_Activate_Layer);
+    void add_layer(Activate_Layer);
 
     // initialize for computing
     void allocate_memory(const int batch_size, const int example_size);
@@ -142,8 +142,8 @@ void Neural_Network::add_layer(Flatten_Layer layer) {
 }
 
 
-void Neural_Network::add_layer(Tensor_Activate_Layer layer) {
-    std::shared_ptr<Layer> _layer = std::make_shared<Tensor_Activate_Layer>(layer);
+void Neural_Network::add_layer(Activate_Layer layer) {
+    std::shared_ptr<Layer> _layer = std::make_shared<Activate_Layer>(layer);
     this->_layers.push_back(_layer);
 }
 
@@ -158,34 +158,10 @@ void Neural_Network::allocate_memory(const int batch_size, const int example_siz
     this->_layers.front()->allocate_memory(this->batch_size,
                                            this->_example_size);
 
-    // hidden layer
-    for ( int i = 1; i < this->_layer_num-1; i++ ) {
-        if ( this->_layers[i]->get_type() == "full_connect_layer" ) {
-            this->_layers[i]->allocate_memory(this->batch_size);
-        } else if ( this->_layers[i]->get_type() == "en_tensor_layer" ) {
-            this->_layers[i]->allocate_memory(this->batch_size);
-        } else if ( this->_layers[i]->get_type() == "flatten_layer" ) {
-            this->_layers[i]->allocate_memory(this->batch_size);
-        } else if ( this->_layers[i]->get_type() == "convolution_layer" ) {
-            this->_layers[i]->allocate_memory(this->batch_size,
-                                              this->_layers[i-1]->get_output_map_shape()[0],
-                                              this->_layers[i-1]->get_output_map_shape()[1]);
-        } else if ( this->_layers[i]->get_type() == "max_pooling_layer" ) {
-            this->_layers[i]->allocate_memory(this->batch_size,
-                                             this->_layers[i-1]->get_output_map_shape()[0],
-                                             this->_layers[i-1]->get_output_map_shape()[1]);
-        } else if ( this->_layers[i]->get_type() == "tensor_activate_layer" ) {
-            this->_layers[i]->allocate_memory(this->batch_size,
-                                              this->_layers[i-1]->get_output_map_shape()[0],
-                                              this->_layers[i-1]->get_output_map_shape()[1]);
-        } else {
-            cout << this->_layers[i]->get_type() << endl;
-            cout << "Neural Networkクラスでは指定のレイヤークラスを利用できません。" << endl;
-            exit(1);
-        }
+    // hidden layer and output layer
+    for ( int i = 1; i < this->_layer_num; i++ ) {
+        this->_layers[i]->allocate_memory(this->batch_size, this->_layers[i-1]);
     }
-    // output_layer
-    this->_layers.back()->allocate_memory(this->batch_size);
 }
 
 
@@ -213,7 +189,7 @@ void Neural_Network::backprop(const MatrixXf pred, const MatrixXf label) {
             || this->_layers[i-1]->get_type() == "flatten_layer"
             || this->_layers[i-1]->get_type() == "en_tensor_layer"
             || this->_layers[i-1]->get_type() == "convolution_layer"
-            || this->_layers[i-1]->get_type() == "tensor_activate_layer" ) {
+            || this->_layers[i-1]->get_type() == "activate_layer" ) {
             this->_layers[i-1]->calc_delta(this->_layers[i]);
         } else if ( this->_layers[i-1]->get_type() == "max_pooling_layer" ) {
             this->_layers[i-1]->calc_delta(this->_layers[i],
@@ -239,7 +215,7 @@ void Neural_Network::backprop(const MatrixXf pred, const MatrixXf label) {
                                                     this->_layers[i+1]);
             } else if ( this->_layers[i]->get_type() == "max_pooling_layer" ) {
                 ;
-            } else if ( this->_layers[i]->get_type() == "tensor_activate_layer" ) {
+            } else if ( this->_layers[i]->get_type() == "activate_layer" ) {
                 ;
             }else {
                 cout << i << this->_layers[i]->get_type() << endl;

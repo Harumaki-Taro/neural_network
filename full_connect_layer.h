@@ -22,7 +22,7 @@ public:
     virtual void forwardprop(const vector<vector <MatrixXf> > X);
     virtual void calc_delta(const std::shared_ptr<Layer> &next_layer);
     virtual void calc_differential(const std::shared_ptr<Layer> &prev_layer);
-    virtual void allocate_memory(const int batch_size);
+    virtual void allocate_memory(const int batch_size, const shared_ptr<Layer> &prev_layer);
 
     FullConnect_Layer(const function<MatrixXf(MatrixXf)> f,
                       const function<MatrixXf(MatrixXf)> d_f,
@@ -33,6 +33,9 @@ public:
     // getter
     virtual bool get_trainable(void);
     virtual int get_batch_size(void);
+    virtual bool get_is_tensor(void);
+    virtual int get_unit_num(void);
+    virtual int get_channel_num(void);
     virtual bool get_use_bias(void);
     int get_W_cols(void);
     int get_W_rows(void);
@@ -43,7 +46,7 @@ public:
     virtual function<MatrixXf(MatrixXf)> get_d_activateFunction(void);
 
     // setter
-    virtual void set_batch_size(const int batch_size);
+    virtual void set_batch_size(const int batch_size, const shared_ptr<Layer> &prev_layer);
     virtual string get_type(void);
     // virtual void set_bW(const MatrixXf W, const MatrixXf b, const bool use_bias);
     // virtual void set_W(MatrixXf);
@@ -55,6 +58,8 @@ public:
 private:
     bool trainable = true;
     const string type = "full_connect_layer";
+    const bool is_tensor = false;
+    int unit_num;
     // Parameters tracked during learning
     // Parameters specified at first
     int batch_size;
@@ -166,8 +171,9 @@ void FullConnect_Layer::calc_differential(const std::shared_ptr<Layer> &prev_lay
 }
 
 
-void FullConnect_Layer::allocate_memory(const int batch_size) {
+void FullConnect_Layer::allocate_memory(const int batch_size, const shared_ptr<Layer> &prev_layer) {
     this->batch_size = batch_size;
+    this->unit_num = this->_W_cols;
 
     this->_input.resize(1); this->_input[0].resize(this->channel_num);
     this->_preActivate.resize(1); this->_preActivate[0].resize(this->channel_num);
@@ -193,6 +199,9 @@ void FullConnect_Layer::allocate_memory(const int batch_size) {
 
 bool FullConnect_Layer::get_trainable(void) { return this->trainable; }
 string FullConnect_Layer::get_type(void) { return this->type; }
+bool FullConnect_Layer::get_is_tensor(void) { return this->is_tensor; }
+int FullConnect_Layer::get_unit_num(void) { return this->unit_num; }
+int FullConnect_Layer::get_channel_num(void) { return this->channel_num; }
 int FullConnect_Layer::get_batch_size(void) { return this->batch_size; }
 bool FullConnect_Layer::get_use_bias(void) { return this->use_bias; }
 int FullConnect_Layer::get_W_cols(void) { return this->_W_cols; }
@@ -203,8 +212,8 @@ vector<vector <MatrixXf> > FullConnect_Layer::get_delta(void) { return this->del
 function<MatrixXf(MatrixXf)> FullConnect_Layer::get_activateFunction(void) { return this->f; }
 function<MatrixXf(MatrixXf)> FullConnect_Layer::get_d_activateFunction(void) { return this->d_f; }
 
-void FullConnect_Layer::set_batch_size(const int batch_size) {
-    this->allocate_memory(batch_size);
+void FullConnect_Layer::set_batch_size(const int batch_size, const shared_ptr<Layer> &prev_layer) {
+    this->allocate_memory(batch_size, prev_layer);
 }
 void FullConnect_Layer::set_delta(const vector<vector <MatrixXf> > delta) {
     this->delta[0][0] = delta[0][0];

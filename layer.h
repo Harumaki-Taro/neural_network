@@ -27,14 +27,14 @@ public:
                                    const shared_ptr<Layer> &next_layer) { cout << "使用禁止d4" << endl; exit(1); }
     virtual void calc_differential(const shared_ptr<Layer> &prev_layer) { cout << "使用禁止d5" << endl; exit(1); }
 
-    virtual void allocate_memory(const int batch_size) { cout << "使用禁止g" << endl; exit(1); }
-    virtual void allocate_memory(const int batch_size,
-                                 const int example_size) { cout << "使用禁止i" << endl; exit(1); }
-    virtual void allocate_memory(const int batch_size, const int prev_cols, const int prev_rows) { cout << "使用禁止i2" << endl; exit(1); }
+    virtual void allocate_memory(const int batch_size, const int example_size) { cout << "使用禁止i" << endl; exit(1); }
+    virtual void allocate_memory(const int batch_size, const shared_ptr<Layer> &prev_layer) { cout << "使用禁止i3" << endl; exit(1); }
 
     // getter
     virtual bool get_trainable(void) { cout << "使用禁止j" << endl; exit(1); return 1; }
     virtual string get_type(void) { cout << "使用禁止j2" << endl; exit(1); return "0"; }
+    virtual bool get_is_tensor(void) { cout << "使用禁止j3" << endl; exit(1); return 1; }
+    virtual int get_unit_num(void) { cout << "使用禁止j4" << endl; exit(1); return 1; }
     virtual int get_batch_size(void) { cout << "使用禁止k" << endl; exit(1); return 1; }
     virtual bool get_use_bias(void) { cout << "使用禁止l" << endl; exit(1); return false; }
     virtual int get_W_cols(void) { cout << "使用禁止p" << endl; exit(1); return 1; }
@@ -54,7 +54,7 @@ public:
 
     // setter
     virtual void set_batch_size(const int batch_size) { cout << "使用禁止w" << endl; exit(1); }
-    virtual void set_batch_size(const int batch_size, const int prev_cols, const int prev_rows) { cout << "使用禁止x2" << endl; exit(1); }
+    virtual void set_batch_size(const int batch_size, const shared_ptr<Layer> &prev_layer) { cout << "使用禁止x2" << endl; exit(1); }
     virtual void set_bW(const MatrixXf W, const MatrixXf b, const bool use_bias) { cout << "使用禁止y" << endl; exit(1); }
     virtual void set_delta(const MatrixXf delta) { cout << "使用禁止z" << endl; exit(1); }
     virtual void set_delta(const vector< vector<MatrixXf> > delta) { cout << "使用禁止z2" << endl; exit(1); }

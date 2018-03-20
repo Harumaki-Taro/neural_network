@@ -61,10 +61,10 @@ int main(void) {
 
     nn.add_layer( En_Tensor_Layer(1, 28, 28) );
     nn.add_layer( Convolution_Layer(1, 5, 4, 4) );
-    nn.add_layer( Tensor_Activate_Layer(relu, relu_d, 5)) ;
+    nn.add_layer( Activate_Layer(relu, relu_d, 5)) ;
     nn.add_layer( Max_Pooling_Layer(5, 2, 2, 2, 2) );
     nn.add_layer( Convolution_Layer(5, 5, 4, 4) );
-    nn.add_layer( Tensor_Activate_Layer(relu, relu_d, 5)) ;
+    nn.add_layer( Activate_Layer(relu, relu_d, 5)) ;
     nn.add_layer( Max_Pooling_Layer(5, 2, 2, 2, 2) );
     nn.add_layer( Flatten_Layer(5, 4, 4) );
     int W1_shape[2] = { 5*4*4, 500 };
