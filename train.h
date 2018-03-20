@@ -56,6 +56,7 @@ void Train::update(Neural_Network& nn, Mini_Batch mini_batch, int step) {
 
     MatrixXf pred = nn.forwardprop(mini_batch.example);
     nn.backprop(pred, mini_batch.label);
+    
     this->opt->update(this->loss, nn, step);
 
     end = std::chrono::system_clock::now();  // 計測終了時間

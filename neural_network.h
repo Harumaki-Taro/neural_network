@@ -182,9 +182,8 @@ MatrixXf Neural_Network::forwardprop(const MatrixXf X) {
 void Neural_Network::backprop(const MatrixXf pred, const MatrixXf label) {
     // output_layer
     this->_layers.back()->calc_delta(pred, label);
-    this->_layers[this->_layer_num-2]->set_delta(this->_layers.back()->get_delta());
     // hidden_layer (delta)
-    for ( int i = this->_layer_num-2; i != 1; --i ) {
+    for ( int i = this->_layer_num-1; i != 1; --i ) {
         if ( this->_layers[i-1]->get_type() == "full_connect_layer"
             || this->_layers[i-1]->get_type() == "flatten_layer"
             || this->_layers[i-1]->get_type() == "en_tensor_layer"
@@ -205,7 +204,8 @@ void Neural_Network::backprop(const MatrixXf pred, const MatrixXf label) {
     for ( int i = this->_layer_num-1; i != 0; --i ) {
         if ( this->_layers[i]->get_trainable() ) {
             if ( this->_layers[i]->get_type() == "full_connect_layer" ) {
-                this->_layers[i]->calc_differential(this->_layers[i-1]);
+                this->_layers[i]->calc_differential(this->_layers[i-1],
+                                                    this->_layers[i+1]);
             } else if ( this->_layers[i]->get_type() == "flatten_layer" ) {
                 ;
             } else if ( this->_layers[i]->get_type() == "en_tensor_layer" ) {

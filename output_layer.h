@@ -52,8 +52,6 @@ private:
     const string type = "output_layer";
     const bool is_tensor = false;
     int unit_num;
-    // Parameters tracked during learning
-    vector<vector <MatrixXf> > delta;
     // Parameters specified at first
     int batch_size;
     int _class_num;

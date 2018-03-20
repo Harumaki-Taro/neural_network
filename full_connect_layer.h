@@ -15,18 +15,15 @@ using std::endl;
 using Eigen::MatrixXf;
 using std::shared_ptr;
 
-// NOTE:全結合もチャンネル化した方がいい。
-
 class FullConnect_Layer : public Layer {
 public:
     virtual void forwardprop(const vector<vector <MatrixXf> > X);
     virtual void calc_delta(const std::shared_ptr<Layer> &next_layer);
-    virtual void calc_differential(const std::shared_ptr<Layer> &prev_layer);
+    virtual void calc_differential(const std::shared_ptr<Layer> &prev_layer,
+                                   const std::shared_ptr<Layer> &next_layer);
     virtual void allocate_memory(const int batch_size, const shared_ptr<Layer> &prev_layer);
 
-    FullConnect_Layer(const function<MatrixXf(MatrixXf)> f,
-                      const function<MatrixXf(MatrixXf)> d_f,
-                      const int channel_num,
+    FullConnect_Layer(const int channel_num,
                       const int (&W_shape)[2], const string initializer="Xavier",
                       const bool use_bias=true);
 
@@ -39,11 +36,8 @@ public:
     virtual bool get_use_bias(void);
     int get_W_cols(void);
     int get_W_rows(void);
-    vector<vector <MatrixXf> > get_preActivate(void);
     virtual vector<vector <MatrixXf> > get_activated(void);
     virtual vector<vector <MatrixXf> > get_delta(void);
-    virtual function<MatrixXf(MatrixXf)> get_activateFunction(void);
-    virtual function<MatrixXf(MatrixXf)> get_d_activateFunction(void);
 
     // setter
     virtual void set_batch_size(const int batch_size, const shared_ptr<Layer> &prev_layer);
@@ -52,8 +46,6 @@ public:
     // virtual void set_W(MatrixXf);
     // virtual void set_b(MatrixXf);
     virtual void set_delta(const vector<vector <MatrixXf> > delta);
-    virtual void set_activateFunction(const function<MatrixXf(MatrixXf)> f);
-    virtual void set_d_activateFunction(const function<MatrixXf(MatrixXf)> d_f);
 
 private:
     bool trainable = true;
@@ -67,11 +59,8 @@ private:
     int _W_rows;
     int channel_num;
     bool use_bias;
-    function<MatrixXf(MatrixXf)> f;
-    function<MatrixXf(MatrixXf)> d_f;
     // Storage during learning
     vector<vector <MatrixXf> > _input;
-    vector<vector <MatrixXf> > _preActivate;
 
     void build_layer(const function<MatrixXf(MatrixXf)> f,
                      const function<MatrixXf(MatrixXf)> d_f,
@@ -86,9 +75,7 @@ private:
 };
 
 
-FullConnect_Layer::FullConnect_Layer(const function<MatrixXf(MatrixXf)> f,
-                                     const function<MatrixXf(MatrixXf)> d_f,
-                                     const int channel_num,
+FullConnect_Layer::FullConnect_Layer(const int channel_num,
                                      const int (&W_shape)[2], const string initializer,
                                      const bool use_bias) {
 
@@ -109,9 +96,6 @@ FullConnect_Layer::FullConnect_Layer(const function<MatrixXf(MatrixXf)> f,
     this->_W_rows = W_shape[0];
     this->_W_cols = W_shape[1];
     this->use_bias = use_bias;
-
-    this->f = f;
-    this->d_f = d_f;
 }
 
 
@@ -120,13 +104,11 @@ void FullConnect_Layer::forwardprop(const vector<vector <MatrixXf> > X) {
         #pragma omp parallel for
         for ( int i = 0; i < this->channel_num; ++i ) {
             this->_input[0][i].block(0,1,this->batch_size,this->_W_rows) = X[0][i];
-            this->_preActivate[0][i] = this->_input[0][i] * this->W[0][i];
-            this->_activated[0][i] = this->f(this->_preActivate[0][i]);
+            this->_activated[0][i] = this->_input[0][i] * this->W[0][i];
         }
     } else {
         this->_input[0][0].block(0,1,this->batch_size,this->_W_rows) = X[0][0];
-        this->_preActivate[0][0] = this->_input[0][0] * this->W[0][0];
-        this->_activated[0][0] = this->f(this->_preActivate[0][0]);
+        this->_activated[0][0] = this->_input[0][0] * this->W[0][0];
     }
 }
 
@@ -136,20 +118,19 @@ void FullConnect_Layer::calc_delta(const std::shared_ptr<Layer> &next_layer) {
         #pragma omp parallel for
         for ( int i = 0; i < this->channel_num; ++i ) {
             this->delta[0][i]
-                = elemntwiseProduct(next_layer->delta[0][i] *
-                next_layer->W[0][i].block(1,0,next_layer->get_W_rows(),next_layer->get_W_cols()).transpose(),
-                d_f(this->_activated[0][i]));
+                = next_layer->delta[0][i] *
+                this->W[0][i].block(1,0,this->get_W_rows(),this->get_W_cols()).transpose();
         }
     } else {
         this->delta[0][0]
-            = elemntwiseProduct(next_layer->delta[0][0] *
-            next_layer->W[0][0].block(1,0,next_layer->get_W_rows(),next_layer->get_W_cols()).transpose(),
-            d_f(this->_activated[0][0]));
+            = next_layer->delta[0][0] *
+            this->W[0][0].block(1,0,this->get_W_rows(),this->get_W_cols()).transpose();
     }
 }
 
 
-void FullConnect_Layer::calc_differential(const std::shared_ptr<Layer> &prev_layer) {
+void FullConnect_Layer::calc_differential(const std::shared_ptr<Layer> &prev_layer,
+                                          const std::shared_ptr<Layer> &next_layer) {
     if ( this->channel_num > 1 ) {
         #pragma omp parallel for
         for ( int i = 0; i < this->channel_num; ++i ) {
@@ -162,9 +143,9 @@ void FullConnect_Layer::calc_differential(const std::shared_ptr<Layer> &prev_lay
         }
     } else {
         this->dE_dW[0][0].block(1, 0, this->_W_rows, this->_W_cols)
-            = prev_layer->_activated[0][0].transpose() * this->delta[0][0];
+            = prev_layer->_activated[0][0].transpose() * next_layer->delta[0][0];
 
-        this->dE_dW[0][0].block(0, 0, 1, this->_W_cols) = this->delta[0][0].colwise().sum();
+        this->dE_dW[0][0].block(0, 0, 1, this->_W_cols) = next_layer->delta[0][0].colwise().sum();
 
         this->dE_dW[0][0] /= (float)this->batch_size;
     }
@@ -176,7 +157,6 @@ void FullConnect_Layer::allocate_memory(const int batch_size, const shared_ptr<L
     this->unit_num = this->_W_cols;
 
     this->_input.resize(1); this->_input[0].resize(this->channel_num);
-    this->_preActivate.resize(1); this->_preActivate[0].resize(this->channel_num);
     this->delta.resize(1); this->delta[0].resize(this->channel_num);
     this->_activated.resize(1); this->_activated[0].resize(channel_num);
     this->dE_dW.resize(1); this->dE_dW[0].resize(channel_num);
@@ -189,8 +169,7 @@ void FullConnect_Layer::allocate_memory(const int batch_size, const shared_ptr<L
             this->_input[0][i].block(0,0,this->batch_size,1) = MatrixXf::Zero(this->batch_size, 1);
         }
 
-        this->_preActivate[0][i].resize(this->batch_size, this->_W_cols);
-        this->delta[0][i].resize(this->batch_size, this->_W_cols);
+        this->delta[0][i].resize(this->batch_size, this->_W_rows);
         this->_activated[0][i].resize(this->batch_size, this->_W_cols);
         this->dE_dW[0][i].resize(this->_W_rows+1, this->_W_cols);
     }
@@ -206,23 +185,14 @@ int FullConnect_Layer::get_batch_size(void) { return this->batch_size; }
 bool FullConnect_Layer::get_use_bias(void) { return this->use_bias; }
 int FullConnect_Layer::get_W_cols(void) { return this->_W_cols; }
 int FullConnect_Layer::get_W_rows(void) { return this->_W_rows; }
-vector<vector <MatrixXf> > FullConnect_Layer::get_preActivate(void) { return this->_preActivate; }
 vector<vector <MatrixXf> > FullConnect_Layer::get_activated(void) { return this->_activated; }
 vector<vector <MatrixXf> > FullConnect_Layer::get_delta(void) { return this->delta; }
-function<MatrixXf(MatrixXf)> FullConnect_Layer::get_activateFunction(void) { return this->f; }
-function<MatrixXf(MatrixXf)> FullConnect_Layer::get_d_activateFunction(void) { return this->d_f; }
 
 void FullConnect_Layer::set_batch_size(const int batch_size, const shared_ptr<Layer> &prev_layer) {
     this->allocate_memory(batch_size, prev_layer);
 }
 void FullConnect_Layer::set_delta(const vector<vector <MatrixXf> > delta) {
     this->delta[0][0] = delta[0][0];
-}
-void FullConnect_Layer::set_activateFunction(const function<MatrixXf (MatrixXf)> f) {
-    this->f = f;
-}
-void FullConnect_Layer::set_d_activateFunction(const function<MatrixXf (MatrixXf)> d_f) {
-    this->d_f = d_f;
 }
 
 
