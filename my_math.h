@@ -45,6 +45,51 @@ MatrixXf sigmoid_d(const MatrixXf m) {
 }
 
 
+
+MatrixXf relu(const MatrixXf m) {
+    /*
+        Returns the value of the relu function f(x) = max(0, x).
+        <Inputs>
+            m: matrix
+        <Output>
+            max(0, x) for every element of the input matrix m.
+    */
+    MatrixXf output = MatrixXf::Zero(m.rows(), m.cols());
+
+    for ( int i = 0; i < m.rows(); ++i ) {
+        for ( int j = 0; j < m.cols(); ++j ) {
+            if ( m(i, j) > 0.f ) {
+                output(i, j) = m(i, j);
+            }
+        }
+    }
+    return output;
+}
+
+
+MatrixXf relu_d(const MatrixXf m) {
+    /*
+        Returns the value of the relu function derivative f'(x) = 1 if x>0 else 0,
+        where f(x) is sigmoid function.
+        <Inputs>
+            m: matrix
+        <Output>
+            1 if x>0 else 0 for every element of the input matrix m.
+    */
+    MatrixXf output = MatrixXf::Zero(m.rows(), m.cols());
+
+    for ( int i = 0; i < m.rows(); ++i ) {
+        for ( int j = 0; j < m.cols(); ++j ) {
+            if ( m(i, j) >= 0.f ) {
+                output(i, j) = 1.f;
+            }
+        }
+    }
+    return output;
+}
+
+
+
 MatrixXf identity(const MatrixXf m) {
     /*
         Returns the value of the identity function f(x) = x.

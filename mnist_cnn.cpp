@@ -38,7 +38,7 @@ int main(void) {
     // Define learning parameters.
     MatrixXf pred;
     float learning_rate = 0.001;
-    unsigned int mini_batch_size = 50;
+    unsigned int mini_batch_size = 100;
     unsigned int epoch = 100000;
 
     // Build a neural network archtecture.
@@ -60,17 +60,17 @@ int main(void) {
     // nn.add_layer( Output_Layer(softmax, mean_cross_entropy, diff, 10) );
 
     nn.add_layer( En_Tensor_Layer(1, 28, 28) );
-    nn.add_layer( Convolution_Layer(1, 2, 3, 3) );
-    nn.add_layer( Tensor_Activate_Layer(tanh_, tanh_d, 2)) ;
-    nn.add_layer( Max_Pooling_Layer(2, 2, 2) );
-    nn.add_layer( Convolution_Layer(2, 5, 3, 3) );
-    nn.add_layer( Tensor_Activate_Layer(tanh_, tanh_d, 5)) ;
-    nn.add_layer( Max_Pooling_Layer(5, 2, 2) );
-    nn.add_layer( Flatten_Layer(5, 22, 22) );
-    int W1_shape[2] = { 22*22*5, 500 };
-    nn.add_layer( FullConnect_Layer(tanh_, tanh_d, 1, W1_shape) );
+    nn.add_layer( Convolution_Layer(1, 5, 4, 4) );
+    nn.add_layer( Tensor_Activate_Layer(relu, relu_d, 5)) ;
+    nn.add_layer( Max_Pooling_Layer(5, 2, 2, 2, 2) );
+    nn.add_layer( Convolution_Layer(5, 5, 4, 4) );
+    nn.add_layer( Tensor_Activate_Layer(relu, relu_d, 5)) ;
+    nn.add_layer( Max_Pooling_Layer(5, 2, 2, 2, 2) );
+    nn.add_layer( Flatten_Layer(5, 4, 4) );
+    int W1_shape[2] = { 5*4*4, 500 };
+    nn.add_layer( FullConnect_Layer(relu, relu_d, 1, W1_shape) );
     int W2_shape[2] = { 500, 84 };
-    nn.add_layer( FullConnect_Layer(tanh_, tanh_d, 1, W2_shape) );
+    nn.add_layer( FullConnect_Layer(relu, relu_d, 1, W2_shape) );
     int W3_shape[2] = { 84, 10 };
     nn.add_layer( FullConnect_Layer(identity, identity_d, 1, W3_shape) );
     nn.add_layer( Output_Layer(softmax, mean_cross_entropy, diff, 10) );
@@ -81,7 +81,7 @@ int main(void) {
     Loss loss(nn);
     // loss.add_LpNorm(0.001, 2);
 
-    Momentum opt(learning_rate);
+    SGD opt(learning_rate);
     Train train(loss, opt);
 
     for ( unsigned int i = 0; i < epoch; i++ ) {

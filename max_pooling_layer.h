@@ -139,7 +139,7 @@ void Max_Pooling_Layer::calc_delta(const shared_ptr<Layer> &next_layer,
                         r = part_r - p * this->stlide_height;
                         for ( int q = Q_min; q <= Q_max; ++q ) {
                             s = part_s - q * this->stlide_width;
-                            if ( (*activated_ptr)(p, q) == (*prev_activated_ptr)(h, w) ) {
+                            if ( fabs((*activated_ptr)(p, q) - (*prev_activated_ptr)(h, w)) < fabs((*activated_ptr)(p, q)) * 0.000001 ) {
                                 this->delta[n][c](h, w) += (*next_delta_ptr)(p, q);
                             }
                         }

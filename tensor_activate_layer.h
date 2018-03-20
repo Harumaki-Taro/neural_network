@@ -72,7 +72,7 @@ void Tensor_Activate_Layer::calc_delta(const shared_ptr<Layer> &next_layer) {
     #pragma omp parallel for
     for ( int n = 0; n < this->batch_size; ++n ) {
         for ( int c = 0; c < this->channel_num; ++c ) {
-            this->delta[n][c] = next_layer->get_delta()[n][c] * this->d_f(this->_activated[n][c]);
+            this->delta[n][c] = ((next_layer->get_delta()[n][c]).array() * (this->d_f(this->_activated[n][c])).array()).matrix();
         }
     }
 }

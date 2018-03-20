@@ -38,16 +38,16 @@ int main(void) {
 
     // Define learning parameters.
     MatrixXf pred;
-    float learning_rate = 0.0001;
+    float learning_rate = 0.001;
     unsigned int mini_batch_size = 50;
     unsigned int epoch = 50000;
 
     // Build a neural network archtecture.
     Neural_Network nn;
     int W1_shape[2] = { 784, 500 };
-    nn.add_layer( FullConnect_Layer(tanh_, tanh_d, 1, W1_shape) );
+    nn.add_layer( FullConnect_Layer(relu, relu_d, 1, W1_shape) );
     int W2_shape[2] = { 500, 200 };
-    nn.add_layer( FullConnect_Layer(tanh_, tanh_d, 1, W2_shape) );
+    nn.add_layer( FullConnect_Layer(relu, relu_d, 1, W2_shape) );
     int W3_shape[2] = { 200, 10 };
     nn.add_layer( FullConnect_Layer(identity, identity_d, 1, W3_shape) );
     nn.add_layer( Output_Layer(softmax, mean_cross_entropy, diff, 10) );
@@ -57,7 +57,7 @@ int main(void) {
     Loss loss(nn);
     loss.add_LpNorm(0.001, 2);
 
-    Momentum opt(learning_rate);
+    SGD opt(learning_rate);
     Train train(loss, opt);
 
     for ( unsigned int i = 0; i < epoch; i++ ) {
