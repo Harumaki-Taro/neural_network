@@ -68,11 +68,13 @@ int main(void) {
     nn.add_layer( Max_Pooling_Layer(5, 2, 2, 2, 2) );
     nn.add_layer( Flatten_Layer(5, 4, 4) );
     int W1_shape[2] = { 5*4*4, 500 };
-    nn.add_layer( FullConnect_Layer(relu, relu_d, 1, W1_shape) );
+    nn.add_layer( FullConnect_Layer(1, W1_shape) );
+    nn.add_layer( Activate_Layer(relu, relu_d, 1) );
     int W2_shape[2] = { 500, 84 };
-    nn.add_layer( FullConnect_Layer(relu, relu_d, 1, W2_shape) );
+    nn.add_layer( FullConnect_Layer(1, W2_shape) );
+    nn.add_layer( Activate_Layer(relu, relu_d, 1) );
     int W3_shape[2] = { 84, 10 };
-    nn.add_layer( FullConnect_Layer(identity, identity_d, 1, W3_shape) );
+    nn.add_layer( FullConnect_Layer(1, W3_shape) );
     nn.add_layer( Output_Layer(softmax, mean_cross_entropy, diff, 10) );
 
     nn.allocate_memory(mini_batch_size, 28*28);

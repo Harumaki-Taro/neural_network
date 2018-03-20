@@ -69,19 +69,13 @@ void Flatten_Layer::forwardprop(const vector< vector<MatrixXf> > X) {
 
 
 void Flatten_Layer::calc_delta(const shared_ptr<Layer> &next_layer) {
-    vector< vector<MatrixXf> > tmp;
-    tmp.resize(1); tmp[0].resize(1);
-    tmp[0][0].resize(this->batch_size, this->prev_channel_num * this->input_height * this->input_width);
-    tmp[0][0] = next_layer->get_delta()[0][0]
-        * next_layer->W[0][0].block(1,0,next_layer->get_W_rows(),next_layer->get_W_cols()).transpose();
-
     #pragma omp parallel for
     for ( int n = 0; n < this->batch_size; n++ ) {
         for ( int c = 0; c < this->prev_channel_num; c++ ) {
             for ( int h = 0; h < this->input_height; h++ ) {
                 for ( int w = 0; w < this->input_width; w++ ) {
                     this->delta[n][c](h, w)
-                        = tmp[0][0](n, this->input_height * this->input_width * c + this->input_width * h + w);
+                        = next_layer->get_delta()[0][0](n, this->input_height * this->input_width * c + this->input_width * h + w);
                 }
             }
         }
