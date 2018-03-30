@@ -17,8 +17,6 @@ using Eigen::MatrixXf;
 
 class SGD : public Optimizer {
 public:
-    float eps = 0.001;
-
     SGD(float learning_rate);
     virtual void update(Loss &loss, Neural_Network& nn, int step);
 

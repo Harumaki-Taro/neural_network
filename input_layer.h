@@ -41,6 +41,7 @@ private:
 
 void Input_Layer::forwardprop(const MatrixXf X) {
     this->_activated[0][0] = X;
+    // check_nan(this->_activated[0][0], "Input_Layer/forwardprop");
 }
 
 

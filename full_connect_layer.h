@@ -108,7 +108,9 @@ void FullConnect_Layer::forwardprop(const vector<vector <MatrixXf> > X) {
         }
     } else {
         this->_input[0][0].block(0,1,this->batch_size,this->_W_rows) = X[0][0];
+        // check_nan(this->_input[0][0], "FullConnect_Layer/forwardprop/_input");
         this->_activated[0][0] = this->_input[0][0] * this->W[0][0];
+        // check_nan(this->_activated[0][0], "FullConnect_Layer/forwardprop/_activated");
     }
 }
 
@@ -125,6 +127,7 @@ void FullConnect_Layer::calc_delta(const std::shared_ptr<Layer> &next_layer) {
         this->delta[0][0]
             = next_layer->delta[0][0] *
             this->W[0][0].block(1,0,this->get_W_rows(),this->get_W_cols()).transpose();
+        // check_nan(this->delta[0][0], "FullConnect_Layer/calc_delta");
     }
 }
 
@@ -142,12 +145,17 @@ void FullConnect_Layer::calc_differential(const std::shared_ptr<Layer> &prev_lay
             this->dE_dW[0][i] /= (float)this->batch_size;
         }
     } else {
+        // dW
         this->dE_dW[0][0].block(1, 0, this->_W_rows, this->_W_cols)
             = prev_layer->_activated[0][0].transpose() * next_layer->delta[0][0];
+        // check_nan(this->dE_dW[0][0], "FullConnect_Layer/calc_differntial/dE_dW/1");
 
+        // db
         this->dE_dW[0][0].block(0, 0, 1, this->_W_cols) = next_layer->delta[0][0].colwise().sum();
+        // check_nan(this->dE_dW[0][0], "FullConnect_Layer/calc_differntial/dE_dW/2");
 
         this->dE_dW[0][0] /= (float)this->batch_size;
+        // check_nan(this->dE_dW[0][0], "FullConnect_Layer/calc_differntial/dE_dW/3");
     }
 }
 

@@ -5,6 +5,7 @@
 #include <random>
 #include <math.h>
 #include <vector>
+#include <limits>
 #include "Eigen/Core"
 #include "Eigen/Geometry"
 
@@ -20,6 +21,33 @@ using Eigen::log;
 static const float PI = 3.14159265359;
 
 
+void check_nan(MatrixXf m, string comment) {
+    for ( int i = 0; i < m.rows(); ++i ) {
+        for ( int j = 0; j < m.cols(); ++j ) {
+            float x = m(i, j);
+            if ( isnan(x) ) {
+                cout << "値がnanです。 " << comment << "で発生しました。" << endl;
+                exit(1);
+            } else if ( isinf(x) ) {
+                cout << "出力がinfです。" << comment << "で発生しました。" << endl;
+                exit(1);
+            }
+        }
+    }
+}
+
+
+void check_nan(float x, string comment) {
+    if ( isnan(x) ) {
+        cout << "値がnanです。 " << comment << "で発生しました。" << endl;
+        exit(1);
+    } else if ( isinf(x) ) {
+        cout << "出力がinfです。" << comment << "で発生しました。" << endl;
+        exit(1);
+    }
+}
+
+
 MatrixXf sigmoid(const MatrixXf m) {
 	/*
 		Returns the value of the sigmoid function f(x) = 1/(1 + e^-x).
@@ -28,7 +56,11 @@ MatrixXf sigmoid(const MatrixXf m) {
 		<Output>
 			1/(1 + e^-x) for every element of the input matrix m.
 	*/
-    return (1.f / (1.f + (-m.array()).exp())).matrix();
+    MatrixXf output = (1.f / (1.f + (-m.array()).exp())).matrix();
+
+    check_nan(output, "my_math/mean_cross_entropy");
+
+    return output;
 }
 
 
@@ -41,7 +73,11 @@ MatrixXf sigmoid_d(const MatrixXf m) {
 		<Output>
 			x(1 - x) for every element of the input matrix m.
 	*/
-    return (m.array() * (1.f - m.array())).matrix();
+    MatrixXf output = (m.array() * (1.f - m.array())).matrix();
+
+    check_nan(output, "my_math/mean_cross_entropy");
+
+    return output;
 }
 
 
@@ -63,6 +99,9 @@ MatrixXf relu(const MatrixXf m) {
             }
         }
     }
+
+    check_nan(output, "my_math/mean_cross_entropy");
+
     return output;
 }
 
@@ -85,6 +124,9 @@ MatrixXf relu_d(const MatrixXf m) {
             }
         }
     }
+
+    check_nan(output, "my_math/mean_cross_entropy");
+
     return output;
 }
 
@@ -123,7 +165,11 @@ MatrixXf tanh_(const MatrixXf m) {
         <Output>
             relu(x) for every element of the input matrix m.
     */
-    return m.array().tanh().matrix();
+    MatrixXf output = m.array().tanh().matrix();
+
+    check_nan(output, "my_math/mean_cross_entropy");
+
+    return output;
 }
 
 
@@ -135,7 +181,11 @@ MatrixXf tanh_d(const MatrixXf m) {
         <Output>
             1 - x^2 for every element of the input matrix m
     */
-    return (1.f - pow(m.array(), 2)).matrix();
+    MatrixXf output = (1.f - pow(m.array(), 2)).matrix();
+
+    check_nan(output, "my_math/mean_cross_entropy");
+
+    return output;
 }
 
 
@@ -148,7 +198,11 @@ MatrixXf diff(const MatrixXf m1, const MatrixXf m2) {
         <Output>
             m1 - m2 for every element of the input matrix m1, m2.
     */
-    return m1 - m2;
+    MatrixXf output = m1 - m2;
+
+    check_nan(output, "my_math/mean_cross_entropy");
+
+    return output;
 }
 
 
@@ -169,15 +223,22 @@ MatrixXf sum(const MatrixXf m, const int axis) {
 MatrixXf softmax(const MatrixXf m) {
     /*
     */
+
     MatrixXf output(m.rows(), m.cols());
-    ArrayXXf exp_m = m.array();
-    // prevent overflow
-    exp_m = (exp_m - m.maxCoeff()).exp();
-    MatrixXf row_sum = exp_m.rowwise().sum();
+    MatrixXf exp_m(m.rows(), m.cols());
+    MatrixXf exp_sum(m.rows(), 1);
+    for ( int i = 0; i < m.rows(); ++i ) {
+        MatrixXf m_col = m.block(i,0,1,m.cols());
+        // prevent overflow
+        exp_m.block(i,0,1,m.cols()) = (m_col.array() - m_col.maxCoeff()).exp().matrix();
+        exp_sum(i,0) = exp_m.block(i,0,1,m.cols()).sum();
+    }
 
     for ( int i = 0; i != m.rows(); i++ ) {
-        output.block(i,0,1,m.cols()) = (exp_m.row(i) / row_sum(i)).matrix();
+        output.block(i,0,1,m.cols()) = exp_m.row(i) / exp_sum(i, 0);
     }
+
+    check_nan(output, "my_math/mean_cross_entropy");
 
     return output;
 }
@@ -192,7 +253,11 @@ float mean_square_error(const MatrixXf y, const MatrixXf t) {
         <Output>
             1/2 * (y - t)^2 for all element of the input matrix.
     */
-    return 0.5f * pow(y.array() - t.array(), 2).sum();
+    float output = 0.5f * pow(y.array() - t.array(), 2).sum();
+
+    check_nan(output, "my_math/mean_cross_entropy");
+
+    return output;
 }
 
 
@@ -205,11 +270,14 @@ float mean_cross_entropy(const MatrixXf y, const MatrixXf t) {
         <Output>
             - sum(t * log(y)) for all element of the input matrix.
         <Note>
-            - Add 1e-7 to prevent log from divergence.
+            - Add 1e-6 to prevent log from divergence.
     */
     float batch_size = (float)t.rows();
+    float output = - (t.array() * (y.array()+1e-7).log()).sum() / batch_size;
 
-    return - (t.array() * (y.array()+1e-7).log()).sum() / batch_size;
+    check_nan(output, "my_math/mean_cross_entropy");
+
+    return output;
 }
 
 
@@ -222,7 +290,7 @@ float mean_cross_entropy_one_of_k(const MatrixXf y, const MatrixXf t) {
         <Output>
             - sum(t * log(y)) for all element of the input matrix.
         <Note>
-            - Add 1e-7 to prevent log from divergence.
+            - Add 1e-6 to prevent log from divergence.
     */
     float batch_size = (float)t.rows();
 
@@ -232,13 +300,20 @@ float mean_cross_entropy_one_of_k(const MatrixXf y, const MatrixXf t) {
         t.row(i).maxCoeff(&max_index);
         output(i,0) = log(y(i,max_index)+1e-7);
     }
+    float _output_ = - output.sum() / batch_size;
 
-    return - output.sum() / batch_size;
+    check_nan(_output_, "my_math/mean_cross_entropy_one_of_k");
+
+    return _output_;
 }
 
 
 MatrixXf elemntwiseProduct(const MatrixXf m1, const MatrixXf m2) {
-    return (m1.array() * m2.array()).matrix();
+    MatrixXf output = (m1.array() * m2.array()).matrix();
+
+    check_nan(output, "my_math/elementwiseProduct");
+
+    return output;
 }
 
 
@@ -304,6 +379,7 @@ vector<vector <MatrixXf> > uniform_rand(const int (&shape)[4], const float min, 
                     output[i][j](k,l) = gen_rand(mt);
                 }
             }
+            check_nan(output[i][j], "my_math/uniform_rand/4");
         }
     }
 
@@ -317,6 +393,9 @@ MatrixXf uniform_rand(const int (&shape)[2], const float min, const float max) {
         exit(1);
     }
     MatrixXf output = MatrixXf::Random(shape[0], shape[1]);
+
+    check_nan(output, "my_math/uniform_rand/2");
+
     return (((output.array() / 2.f) + 0.5f) * (max - min) + min).matrix();
 }
 
@@ -327,6 +406,9 @@ MatrixXf uniform_rand(const int shape, const float min, const float max) {
         exit(1);
     }
     MatrixXf output = MatrixXf::Random(1, shape);
+
+    check_nan(output, "my_math/uniform_rand/1");
+
     return (((output.array() / 2.f) + 0.5f) * (max - min) + min).matrix();
 }
 
@@ -359,6 +441,12 @@ vector< vector<MatrixXf> > gauss_rand(const int (&shape)[4], const float mu, con
         output.push_back(tmp);
     }
 
+    for ( int i = 0; i < output.size(); ++i ) {
+        for ( int j = 0; j < output[0].size(); ++j ) {
+            check_nan(output[i][j], "my_math/gauss_rand/4");
+        }
+    }
+
     return output;
 }
 
@@ -384,6 +472,8 @@ MatrixXf gauss_rand(const int (&shape)[2], const float mu, const float sgm,
         }
     }
 
+    check_nan(output, "my_math/gauss_rand/2");
+
     return output;
 }
 
@@ -406,6 +496,8 @@ MatrixXf gauss_rand(const int shape, const float mu, const float sgm,
     for ( int i = 0; i < shape; i++ ) {
         output(0, i) = gen_rand(mt);
     }
+
+    check_nan(output, "my_math/gauss_rand/1");
 
     return output;
 }

@@ -18,6 +18,7 @@
 #include "input_layer.h"
 #include "output_layer.h"
 #include "activate_layer.h"
+#include "dropout.h"
 #include "my_math.h"
 #include "batch.h"
 #include <chrono>
@@ -54,6 +55,7 @@ public:
     void add_layer(En_Tensor_Layer);
     void add_layer(Flatten_Layer);
     void add_layer(Activate_Layer);
+    void add_layer(Dropout);
 
     // initialize for computing
     void allocate_memory(const int batch_size, const int example_size);
@@ -63,6 +65,8 @@ public:
     void backprop(const MatrixXf pred, const MatrixXf label);
     float calc_loss_with_prev_pred(const MatrixXf label);
     float calc_loss(const MatrixXf X, const MatrixXf label);
+    float calc_accuracy(const MatrixXf X, const MatrixXf label);
+    MatrixXf inferance(const MatrixXf X);
 
     // debag
     void debag(const Mini_Batch mini_batch, const int point_num=3, const int calc_num_per_layer=100);
@@ -87,14 +91,14 @@ public:
     // constructor
     Neural_Network(void);
     Neural_Network(const Neural_Network &obj){ cout << "コピーコンストラクタが呼ばれたよ" << endl; } // コピーコンストラクタ
-
+    float _logit_;
+    MatrixXf _pred;
 private:
     vector< shared_ptr<Layer> > _layers;
     int batch_size;
     int _example_size;
     int _class_num;
     int _layer_num;
-    MatrixXf _pred;
     function<float(MatrixXf, MatrixXf)> loss_func;
 };
 
@@ -148,6 +152,12 @@ void Neural_Network::add_layer(Activate_Layer layer) {
 }
 
 
+void Neural_Network::add_layer(Dropout layer) {
+    std::shared_ptr<Layer> _layer = std::make_shared<Dropout>(layer);
+    this->_layers.push_back(_layer);
+}
+
+
 //NOTE: 本当はバッチサイズだけで良いはずなのでどうにかする問題
 void Neural_Network::allocate_memory(const int batch_size, const int example_size) {
     this->batch_size = batch_size;
@@ -174,7 +184,7 @@ MatrixXf Neural_Network::forwardprop(const MatrixXf X) {
         this->_layers[i]->forwardprop(this->_layers[i-1]->get_activated());
     }
     this->_pred = this->_layers.back()->get_activated()[0][0];
-
+    this->_logit_ = this->_layers[this->_layers.size()-2]->get_activated()[0][0](0, 0);
     return this->_pred;
 }
 
@@ -188,7 +198,8 @@ void Neural_Network::backprop(const MatrixXf pred, const MatrixXf label) {
             || this->_layers[i-1]->get_type() == "flatten_layer"
             || this->_layers[i-1]->get_type() == "en_tensor_layer"
             || this->_layers[i-1]->get_type() == "convolution_layer"
-            || this->_layers[i-1]->get_type() == "activate_layer" ) {
+            || this->_layers[i-1]->get_type() == "activate_layer"
+            || this->_layers[i-1]->get_type() == "dropout" ) {
             this->_layers[i-1]->calc_delta(this->_layers[i]);
         } else if ( this->_layers[i-1]->get_type() == "max_pooling_layer" ) {
             this->_layers[i-1]->calc_delta(this->_layers[i],
@@ -217,7 +228,7 @@ void Neural_Network::backprop(const MatrixXf pred, const MatrixXf label) {
                 ;
             } else if ( this->_layers[i]->get_type() == "activate_layer" ) {
                 ;
-            }else {
+            } else {
                 cout << i << this->_layers[i]->get_type() << endl;
                 cout << "(calc_dE)Neural Networkクラスでは指定のレイヤークラスを利用できません。" << endl;
                 exit(1);
@@ -232,9 +243,42 @@ float Neural_Network::calc_loss_with_prev_pred(const MatrixXf label) {
 }
 
 
-float Neural_Network::calc_loss(MatrixXf X, MatrixXf label) {
+float Neural_Network::calc_loss(const MatrixXf X, const MatrixXf label) {
     this->_pred = this->forwardprop(X);
     return this->calc_loss_with_prev_pred(label);
+}
+
+
+float Neural_Network::calc_accuracy(const MatrixXf X, const MatrixXf label) {
+    float output = 0.f;
+    MatrixXf answer = this->inferance(X);
+    for ( int i = 0; i < this->batch_size; i++ ) {
+        for ( int j = 0; j < label.cols(); j++ ) {
+            if ( fabs(label(i, j) - 1.f) < 0.01 && fabs(answer(i, j) - 1.f) < 0.01 ) {
+                output += 1.f;
+            }
+        }
+    }
+    return output / (float)this->batch_size;
+}
+
+
+MatrixXf Neural_Network::inferance(const MatrixXf X) {
+    this->forwardprop(X);
+    MatrixXf output = MatrixXf::Zero(this->_pred.rows(), this->_pred.cols());
+    for ( int i = 0; i < this->_pred.rows(); ++i ) {
+        float tmp = 0.f;
+        int n = 0;
+        for ( int j = 0; j < this->_pred.cols(); ++j ) {
+            if ( tmp < this->_pred(i, j) ) {
+                tmp = this->_pred(i, j);
+                n = j;
+            }
+        }
+        output(i, n) = 1.f;
+    }
+
+    return output;
 }
 
 
@@ -294,8 +338,6 @@ void Neural_Network::debag(const Mini_Batch mini_batch, const int point_num, con
             }
         }
     }
-
-
 }
 
 

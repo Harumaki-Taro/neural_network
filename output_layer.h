@@ -74,11 +74,13 @@ Output_Layer::Output_Layer(const function<MatrixXf(MatrixXf)> f,
 
 void Output_Layer::forwardprop(const vector<vector <MatrixXf> > X) {
     this->_activated[0][0] = this->f(X[0][0]);
+    // check_nan(this->_activated[0][0], "Output_Layer/forwardprop/_activated");
 }
 
 
 void Output_Layer::calc_delta(const MatrixXf pred, const MatrixXf label) {
     this->delta[0][0] = this->delta_f(pred, label);
+    // check_nan(this->_activated[0][0], "Output_Layer/calc_delta/delta");
 }
 
 

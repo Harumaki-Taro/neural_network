@@ -92,13 +92,14 @@ void Activate_Layer::allocate_memory(const int batch_size, const shared_ptr<Laye
         this->X_shape[1] = prev_layer->get_channel_num();
         this->X_shape[2] = prev_layer->get_output_map_shape()[0];
         this->X_shape[3] = prev_layer->get_output_map_shape()[1];
+        this->unit_num = this->X_shape[1] * this->X_shape[2] * this->X_shape[3];
     } else {
         this->X_shape[0] = 1;
         this->X_shape[1] = prev_layer->get_channel_num();
         this->X_shape[2] = this->batch_size;
-        this->X_shape[3] = prev_layer->get_unit_num();
+        this->X_shape[3] = prev_layer->_activated[0][0].cols();
+        this->unit_num = this->X_shape[1] * this->X_shape[3];
     }
-    this->unit_num = this->X_shape[0] * this->X_shape[1] * this->X_shape[2] * this->X_shape[3];
 
     // preActivate & activated
     for ( int i = 0; i < this->X_shape[0]; i++ ) {
