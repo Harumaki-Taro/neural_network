@@ -10,7 +10,7 @@
 #include <float.h>
 #include "Eigen/Core"
 #include "layer.h"
-#include "full_connect_layer.h"
+#include "affine_layer.h"
 #include "convolution_layer.h"
 #include "en_tensor_layer.h"
 #include "flatten_layer.h"
@@ -18,6 +18,7 @@
 #include "input_layer.h"
 #include "output_layer.h"
 #include "activate_layer.h"
+#include "local_constrast_normalization_layer.h"
 #include "dropout.h"
 #include "my_math.h"
 #include "batch.h"
@@ -48,7 +49,7 @@ class Neural_Network {
     */
 public:
     // build layers
-    void add_layer(FullConnect_Layer);
+    void add_layer(Affine_Layer);
     void add_layer(Output_Layer);
     void add_layer(Convolution_Layer);
     void add_layer(Max_Pooling_Layer);
@@ -56,6 +57,7 @@ public:
     void add_layer(Flatten_Layer);
     void add_layer(Activate_Layer);
     void add_layer(Dropout);
+    void add_layer(LCN_Layer);
 
     // initialize for computing
     void allocate_memory(const int batch_size, const int example_size);
@@ -109,8 +111,8 @@ Neural_Network::Neural_Network(void) {
 }
 
 
-void Neural_Network::add_layer(FullConnect_Layer layer) {
-    std::shared_ptr<Layer> _layer = std::make_shared<FullConnect_Layer>(layer);
+void Neural_Network::add_layer(Affine_Layer layer) {
+    std::shared_ptr<Layer> _layer = std::make_shared<Affine_Layer>(layer);
     this->_layers.push_back(_layer);
 }
 
@@ -158,6 +160,12 @@ void Neural_Network::add_layer(Dropout layer) {
 }
 
 
+void Neural_Network::add_layer(LCN_Layer layer) {
+    std::shared_ptr<Layer> _layer = std::make_shared<LCN_Layer>(layer);
+    this->_layers.push_back(_layer);
+}
+
+
 //NOTE: 本当はバッチサイズだけで良いはずなのでどうにかする問題
 void Neural_Network::allocate_memory(const int batch_size, const int example_size) {
     this->batch_size = batch_size;
@@ -201,7 +209,8 @@ void Neural_Network::backprop(const MatrixXf pred, const MatrixXf label) {
             || this->_layers[i-1]->get_type() == "activate_layer"
             || this->_layers[i-1]->get_type() == "dropout" ) {
             this->_layers[i-1]->calc_delta(this->_layers[i]);
-        } else if ( this->_layers[i-1]->get_type() == "max_pooling_layer" ) {
+        } else if ( this->_layers[i-1]->get_type() == "max_pooling_layer"
+            || this->_layers[i-1]->get_type() == "local_constract_normalization_layer" ) {
             this->_layers[i-1]->calc_delta(this->_layers[i],
                                            this->_layers[i-2]);
         } else {
@@ -348,7 +357,7 @@ float Neural_Network::central_difference(const int layer_num, const int shape_0,
 
     float tmp = this->_layers[layer_num]->W[shape_0][shape_1](shape_2, shape_3);
     float eps;
-    float _eps = 0.01;
+    float _eps = 0.02;
     if ( fabs(tmp) * _eps > FLT_EPSILON ) {
         eps = fabs(tmp) * _eps;
     } else {

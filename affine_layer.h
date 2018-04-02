@@ -1,5 +1,5 @@
-#ifndef INCLUDE_full_connect_layer_h_
-#define INCLUDE_full_connect_layer_h_
+#ifndef INCLUDE_affine_layer_h_
+#define INCLUDE_affine_layer_h_
 
 #include <iostream>
 #include <functional>
@@ -15,7 +15,7 @@ using std::endl;
 using Eigen::MatrixXf;
 using std::shared_ptr;
 
-class FullConnect_Layer : public Layer {
+class Affine_Layer : public Layer {
 public:
     virtual void forwardprop(const vector<vector <MatrixXf> > X);
     virtual void calc_delta(const std::shared_ptr<Layer> &next_layer);
@@ -23,7 +23,7 @@ public:
                                    const std::shared_ptr<Layer> &next_layer);
     virtual void allocate_memory(const int batch_size, const shared_ptr<Layer> &prev_layer);
 
-    FullConnect_Layer(const int channel_num,
+    Affine_Layer(const int channel_num,
                       const int (&W_shape)[2], const string initializer="Xavier",
                       const bool use_bias=true);
 
@@ -75,7 +75,7 @@ private:
 };
 
 
-FullConnect_Layer::FullConnect_Layer(const int channel_num,
+Affine_Layer::Affine_Layer(const int channel_num,
                                      const int (&W_shape)[2], const string initializer,
                                      const bool use_bias) {
 
@@ -99,7 +99,7 @@ FullConnect_Layer::FullConnect_Layer(const int channel_num,
 }
 
 
-void FullConnect_Layer::forwardprop(const vector<vector <MatrixXf> > X) {
+void Affine_Layer::forwardprop(const vector<vector <MatrixXf> > X) {
     if ( this->channel_num > 1 ) {
         #pragma omp parallel for
         for ( int i = 0; i < this->channel_num; ++i ) {
@@ -108,14 +108,14 @@ void FullConnect_Layer::forwardprop(const vector<vector <MatrixXf> > X) {
         }
     } else {
         this->_input[0][0].block(0,1,this->batch_size,this->_W_rows) = X[0][0];
-        // check_nan(this->_input[0][0], "FullConnect_Layer/forwardprop/_input");
+        // check_nan(this->_input[0][0], "Affine_Layer/forwardprop/_input");
         this->_activated[0][0] = this->_input[0][0] * this->W[0][0];
-        // check_nan(this->_activated[0][0], "FullConnect_Layer/forwardprop/_activated");
+        // check_nan(this->_activated[0][0], "Affine_Layer/forwardprop/_activated");
     }
 }
 
 
-void FullConnect_Layer::calc_delta(const std::shared_ptr<Layer> &next_layer) {
+void Affine_Layer::calc_delta(const std::shared_ptr<Layer> &next_layer) {
     if ( this->channel_num > 1 ) {
         #pragma omp parallel for
         for ( int i = 0; i < this->channel_num; ++i ) {
@@ -127,12 +127,12 @@ void FullConnect_Layer::calc_delta(const std::shared_ptr<Layer> &next_layer) {
         this->delta[0][0]
             = next_layer->delta[0][0] *
             this->W[0][0].block(1,0,this->get_W_rows(),this->get_W_cols()).transpose();
-        // check_nan(this->delta[0][0], "FullConnect_Layer/calc_delta");
+        // check_nan(this->delta[0][0], "Affine_Layer/calc_delta");
     }
 }
 
 
-void FullConnect_Layer::calc_differential(const std::shared_ptr<Layer> &prev_layer,
+void Affine_Layer::calc_differential(const std::shared_ptr<Layer> &prev_layer,
                                           const std::shared_ptr<Layer> &next_layer) {
     if ( this->channel_num > 1 ) {
         #pragma omp parallel for
@@ -148,19 +148,19 @@ void FullConnect_Layer::calc_differential(const std::shared_ptr<Layer> &prev_lay
         // dW
         this->dE_dW[0][0].block(1, 0, this->_W_rows, this->_W_cols)
             = prev_layer->_activated[0][0].transpose() * next_layer->delta[0][0];
-        // check_nan(this->dE_dW[0][0], "FullConnect_Layer/calc_differntial/dE_dW/1");
+        // check_nan(this->dE_dW[0][0], "Affine_Layer/calc_differntial/dE_dW/1");
 
         // db
         this->dE_dW[0][0].block(0, 0, 1, this->_W_cols) = next_layer->delta[0][0].colwise().sum();
-        // check_nan(this->dE_dW[0][0], "FullConnect_Layer/calc_differntial/dE_dW/2");
+        // check_nan(this->dE_dW[0][0], "Affine_Layer/calc_differntial/dE_dW/2");
 
         this->dE_dW[0][0] /= (float)this->batch_size;
-        // check_nan(this->dE_dW[0][0], "FullConnect_Layer/calc_differntial/dE_dW/3");
+        // check_nan(this->dE_dW[0][0], "Affine_Layer/calc_differntial/dE_dW/3");
     }
 }
 
 
-void FullConnect_Layer::allocate_memory(const int batch_size, const shared_ptr<Layer> &prev_layer) {
+void Affine_Layer::allocate_memory(const int batch_size, const shared_ptr<Layer> &prev_layer) {
     this->batch_size = batch_size;
     this->unit_num = this->_W_cols;
 
@@ -184,24 +184,24 @@ void FullConnect_Layer::allocate_memory(const int batch_size, const shared_ptr<L
 }
 
 
-bool FullConnect_Layer::get_trainable(void) { return this->trainable; }
-string FullConnect_Layer::get_type(void) { return this->type; }
-bool FullConnect_Layer::get_is_tensor(void) { return this->is_tensor; }
-int FullConnect_Layer::get_unit_num(void) { return this->unit_num; }
-int FullConnect_Layer::get_channel_num(void) { return this->channel_num; }
-int FullConnect_Layer::get_batch_size(void) { return this->batch_size; }
-bool FullConnect_Layer::get_use_bias(void) { return this->use_bias; }
-int FullConnect_Layer::get_W_cols(void) { return this->_W_cols; }
-int FullConnect_Layer::get_W_rows(void) { return this->_W_rows; }
-vector<vector <MatrixXf> > FullConnect_Layer::get_activated(void) { return this->_activated; }
-vector<vector <MatrixXf> > FullConnect_Layer::get_delta(void) { return this->delta; }
+bool Affine_Layer::get_trainable(void) { return this->trainable; }
+string Affine_Layer::get_type(void) { return this->type; }
+bool Affine_Layer::get_is_tensor(void) { return this->is_tensor; }
+int Affine_Layer::get_unit_num(void) { return this->unit_num; }
+int Affine_Layer::get_channel_num(void) { return this->channel_num; }
+int Affine_Layer::get_batch_size(void) { return this->batch_size; }
+bool Affine_Layer::get_use_bias(void) { return this->use_bias; }
+int Affine_Layer::get_W_cols(void) { return this->_W_cols; }
+int Affine_Layer::get_W_rows(void) { return this->_W_rows; }
+vector<vector <MatrixXf> > Affine_Layer::get_activated(void) { return this->_activated; }
+vector<vector <MatrixXf> > Affine_Layer::get_delta(void) { return this->delta; }
 
-void FullConnect_Layer::set_batch_size(const int batch_size, const shared_ptr<Layer> &prev_layer) {
+void Affine_Layer::set_batch_size(const int batch_size, const shared_ptr<Layer> &prev_layer) {
     this->allocate_memory(batch_size, prev_layer);
 }
-void FullConnect_Layer::set_delta(const vector<vector <MatrixXf> > delta) {
+void Affine_Layer::set_delta(const vector<vector <MatrixXf> > delta) {
     this->delta[0][0] = delta[0][0];
 }
 
 
-#endif // INCLUDE_full_connect_layer_h_
+#endif // INCLUDE_affine_layer_h_
