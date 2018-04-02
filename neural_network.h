@@ -303,15 +303,15 @@ void Neural_Network::debag(const Mini_Batch mini_batch, const int point_num, con
             if ( this->_layers[i]->get_type() == "full_connect_layer" ) {
                 vector<float> aut_diff;
                 vector<float> nmc_diff;
-                float mean_diff_diff=0;
+                float mean_diff_diff=0.f;
                 vector<int> shape_0 = rand_array(calc_num_per_layer, 0, this->_layers[i]->W.size()-1);
                 vector<int> shape_1 = rand_array(calc_num_per_layer, 0, this->_layers[i]->W[0].size()-1);
                 vector<int> shape_2 = rand_array(calc_num_per_layer, 0, this->_layers[i]->W[0][0].rows()-1);
                 vector<int> shape_3 = rand_array(calc_num_per_layer, 0, this->_layers[i]->W[0][0].cols()-1);
 
                 for ( int j = 0; j < calc_num_per_layer; j++ ) {
-                    nmc_diff.push_back(central_difference(i, shape_0[j], shape_1[j], shape_2[j], shape_3[j],
-                                                          mini_batch, point_num));
+                    nmc_diff.push_back(this->central_difference(i, shape_0[j], shape_1[j], shape_2[j], shape_3[j],
+                                                                mini_batch, point_num));
                     aut_diff.push_back(this->_layers[i]->dE_dW[shape_0[j]][shape_1[j]](shape_2[j], shape_3[j]));
                     mean_diff_diff += fabs(nmc_diff[j] - aut_diff[j]);
                 }
@@ -325,15 +325,16 @@ void Neural_Network::debag(const Mini_Batch mini_batch, const int point_num, con
             } else if ( this->_layers[i]->get_type() == "convolution_layer" ) {
                 vector<float> aut_diff;
                 vector<float> nmc_diff;
-                float mean_diff_diff=0;
+                float mean_diff_diff=0.f;
                 vector<int> shape_0 = rand_array(calc_num_per_layer, 0, this->_layers[i]->W.size()-1);
                 vector<int> shape_1 = rand_array(calc_num_per_layer, 0, this->_layers[i]->W[0].size()-1);
                 vector<int> shape_2 = rand_array(calc_num_per_layer, 0, this->_layers[i]->W[0][0].rows()-1);
                 vector<int> shape_3 = rand_array(calc_num_per_layer, 0, this->_layers[i]->W[0][0].cols()-1);
 
                 for ( int j = 0; j < calc_num_per_layer; j++ ) {
-                    nmc_diff.push_back(central_difference(i, shape_0[j], shape_1[j], shape_2[j], shape_3[j],
-                                                          mini_batch, point_num));                    aut_diff.push_back(this->_layers[i]->dE_dW[shape_0[j]][shape_1[j]](shape_2[j], shape_3[j]));
+                    nmc_diff.push_back(this->central_difference(i, shape_0[j], shape_1[j], shape_2[j], shape_3[j],
+                                                                mini_batch, point_num));
+                    aut_diff.push_back(this->_layers[i]->dE_dW[shape_0[j]][shape_1[j]](shape_2[j], shape_3[j]));
                     mean_diff_diff += fabs(nmc_diff[j] - aut_diff[j]);
                 }
                 mean_diff_diff /= (float)calc_num_per_layer;

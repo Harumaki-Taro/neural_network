@@ -241,9 +241,9 @@ void LCN_Layer::divisive_norm_FP(const vector< vector<MatrixXf> > X) {
                         }
                     }
                 }
+                this->sig2[n](h, w) *= this->reciprocal_channel_num;
             }
         }
-        this->sig2[n] *= this->reciprocal_channel_num;
 
         for ( int h = 0; h < this->map_height; ++h ) {
             for ( int w = 0; w < this->map_width; ++w ) {
@@ -252,7 +252,11 @@ void LCN_Layer::divisive_norm_FP(const vector< vector<MatrixXf> > X) {
         }
 
         for ( int c = 0; c < this->channel_num; ++c ) {
-            this->_activated[n][c] = ((X[n][c] - this->mu[n]).array() * this->__sig2[n].array()).matrix();
+            for ( int h = 0; h < this->map_height; ++h ) {
+                for ( int w = 0; w < this->map_width; ++w ) {
+                    this->_activated[n][c](h, w) = (X[n][c](h, w) - this->mu[n](h, w)) * this->__sig2[n](h, w);
+                }
+            }
         }
     }
 }
@@ -318,7 +322,7 @@ void LCN_Layer::divisive_norm_BP(const vector< vector<MatrixXf> > X,
                             int Q_min = max(0, b - (int)floor(float(this->filter_width)/2.f));
                             int Q_max = min(this->map_width - 1,
                                             b - 1 + (int)floor(float(this->filter_width + 1)/2.f));
-                            this->d_sig2[c][h][w](a, b) = this->filter(r, s) * (X[n][c](h, w) - this->mu[n](a, b));
+                            this->d_sig2[c][h][w](a, b) = 0.f;
                             for ( int k = 0; k < this->channel_num; ++k ) {
                                 for ( int p = P_min; p <= P_max; ++p ) {
                                     int u = p - a + (int)floor(float(this->filter_height) / 2.f);
@@ -330,9 +334,10 @@ void LCN_Layer::divisive_norm_BP(const vector< vector<MatrixXf> > X,
                                     }
                                 }
                             }
+                            this->d_sig2[c][h][w](a, b) += this->filter(r, s) * (X[n][c](h, w) - this->mu[n](a, b));
+                            this->d_sig2[c][h][w](a, b) *= 2.f * this->reciprocal_channel_num;
                         }
                     }
-                    this->d_sig2[c][h][w] *= 2.f * this->reciprocal_channel_num;
                 }
             }
         }
@@ -345,18 +350,19 @@ void LCN_Layer::divisive_norm_BP(const vector< vector<MatrixXf> > X,
                 for ( int w = 0; w < this->map_width; ++w ) {
                     int B_min = max(0, w + 1 - (int)floor((float(this->filter_width + 1))/2.f));
                     int B_max = min(this->map_width - 1, w + (int)floor((float(this->filter_width))/2.f));
-                    this->delta[n][c](h, w) = next_delta[n][c](h, w) * this->__sig2[n](h, w);
+                    this->delta[n][c](h, w) = 0.f;
                     for ( int k = 0; k < this->channel_num; ++k ) {
                         for ( int a = A_min; a <= A_max; ++a ) {
                             for ( int b = B_min; b <= B_max; ++b ) {
                                 float _dx_dx = this->d_mu[h][w](a, b)
-                                             + (X[n][k](a, b) - this->mu[n](a, b)) * this->__sig2[n](a, b) * 0.5
-                                             * d_sig2[c][h][w](a, b);
+                                             + 0.5f * (X[n][k](a, b) - this->mu[n](a, b)) * this->d_sig2[c][h][w](a, b)
+                                             / (this->eps + this->sig2[n](a, b));
                                 _dx_dx *= this->__sig2[n](a, b);
                                 this->delta[n][c](h, w) -= next_delta[n][k](a, b) * _dx_dx;
                             }
                         }
                     }
+                    this->delta[n][c](h, w) += next_delta[n][c](h, w) * this->__sig2[n](h, w);
                 }
             }
         }

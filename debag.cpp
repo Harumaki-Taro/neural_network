@@ -55,11 +55,11 @@ int main(void) {
     nn.add_layer( Convolution_Layer(1, 5, 3, 3) );
     nn.add_layer( Activate_Layer(relu, relu_d, 5)) ;
     nn.add_layer( Max_Pooling_Layer(5, 2, 2) );
-    nn.add_layer( LCN_Layer(5, 3, 3, "substractive") );
+    nn.add_layer( LCN_Layer(5, 3, 3, "divisive") );
     nn.add_layer( Convolution_Layer(5, 2, 3, 3) );
     nn.add_layer( Activate_Layer(relu, relu_d, 2)) ;
     nn.add_layer( Max_Pooling_Layer(2, 2, 2) );
-    nn.add_layer( LCN_Layer(2, 3, 3, "substractive") );
+    nn.add_layer( LCN_Layer(2, 3, 3, "divisive") );
     nn.add_layer( Flatten_Layer(2, 22, 22) );
     int W1_shape[2] = { 22*22*2, 500 };
     nn.add_layer( Affine_Layer(1, W1_shape) );
