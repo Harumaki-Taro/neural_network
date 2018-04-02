@@ -354,10 +354,10 @@ void LCN_Layer::divisive_norm_BP(const vector< vector<MatrixXf> > X,
                     for ( int k = 0; k < this->channel_num; ++k ) {
                         for ( int a = A_min; a <= A_max; ++a ) {
                             for ( int b = B_min; b <= B_max; ++b ) {
-                                float _dx_dx = this->d_mu[h][w](a, b)
+                                float _dx_dx = this->d_mu[h][w](a, b) / (this->eps + this->sig2[n](a, b))
                                              + 0.5f * (X[n][k](a, b) - this->mu[n](a, b)) * this->d_sig2[c][h][w](a, b)
-                                             / (this->eps + this->sig2[n](a, b));
-                                _dx_dx *= this->__sig2[n](a, b);
+                                             / pow(this->eps + this->sig2[n](a, b), 2.f);
+                                _dx_dx *= sqrt(this->eps + this->sig2[n](a, b));
                                 this->delta[n][c](h, w) -= next_delta[n][k](a, b) * _dx_dx;
                             }
                         }

@@ -17,6 +17,7 @@ using Eigen::MatrixXf;
 using std::shared_ptr;
 
 // NOTE:全結合もチャンネル化した方がいい。
+// NOTE:テスト時とトレーニング時で挙動を変える。
 
 class Dropout : public Layer {
 public:
