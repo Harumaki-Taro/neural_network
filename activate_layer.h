@@ -101,7 +101,7 @@ void Activate_Layer::allocate_memory(const int batch_size, const shared_ptr<Laye
         this->unit_num = this->X_shape[1] * this->X_shape[3];
     }
 
-    // preActivate & activated
+    // activated
     for ( int i = 0; i < this->X_shape[0]; i++ ) {
         vector<MatrixXf> tmp_activated;
         for ( int j = 0; j < this->X_shape[1]; j++ ) {

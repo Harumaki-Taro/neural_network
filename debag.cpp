@@ -53,11 +53,13 @@ int main(void) {
     Neural_Network nn;
     nn.add_layer( En_Tensor_Layer(1, 28, 28) );
     nn.add_layer( Convolution_Layer(1, 5, 3, 3) );
+    nn.add_layer( Batch_Norm_Layer() );
     nn.add_layer( Activate_Layer(relu, relu_d, 5)) ;
     nn.add_layer( Max_Pooling_Layer(5, 2, 2) );
     // nn.add_layer( LCN_Layer(5, 3, 3, "divisive") );
     nn.add_layer( LRN_Layer(5) );
     nn.add_layer( Convolution_Layer(5, 20, 3, 3) );
+    nn.add_layer( Batch_Norm_Layer() );
     nn.add_layer( Activate_Layer(relu, relu_d, 20)) ;
     nn.add_layer( Max_Pooling_Layer(20, 2, 2) );
     // nn.add_layer( LCN_Layer(2, 3, 3, "divisive") );
@@ -65,9 +67,11 @@ int main(void) {
     nn.add_layer( Flatten_Layer(20, 22, 22) );
     int W1_shape[2] = { 22*22*20, 500 };
     nn.add_layer( Affine_Layer(1, W1_shape) );
+    // nn.add_layer( Batch_Norm_Layer() );
     nn.add_layer( Activate_Layer(relu, relu_d, 1));
     int W2_shape[2] = { 500, 84 };
     nn.add_layer( Affine_Layer(1, W2_shape) );
+    // nn.add_layer( Batch_Norm_Layer() );
     nn.add_layer( Activate_Layer(relu, relu_d, 1)) ;
     int W3_shape[2] = { 84, 10 };
     nn.add_layer( Affine_Layer(1, W3_shape) );
