@@ -76,8 +76,8 @@ private:
 
 
 Affine_Layer::Affine_Layer(const int channel_num,
-                                     const int (&W_shape)[2], const string initializer,
-                                     const bool use_bias) {
+                           const int (&W_shape)[2], const string initializer,
+                           const bool use_bias) {
 
     this->W.resize(1); this->W[0].resize(channel_num);
     int bW_shape[2] = { W_shape[0]+1, W_shape[1] };
@@ -138,9 +138,9 @@ void Affine_Layer::calc_differential(const std::shared_ptr<Layer> &prev_layer,
         #pragma omp parallel for
         for ( int i = 0; i < this->channel_num; ++i ) {
             this->dE_dW[0][i].block(1, 0, this->_W_rows, this->_W_cols)
-                = prev_layer->_activated[0][i].transpose() * this->delta[0][i];
+                = prev_layer->_activated[0][i].transpose() * next_layer->delta[0][i];
 
-            this->dE_dW[0][i].block(0, 0, 1, this->_W_cols) = this->delta[0][i].colwise().sum();
+            this->dE_dW[0][i].block(0, 0, 1, this->_W_cols) = next_layer->delta[0][i].colwise().sum();
 
             this->dE_dW[0][i] /= (float)this->batch_size;
         }

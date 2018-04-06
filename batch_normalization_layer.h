@@ -60,8 +60,12 @@ private:
     vector< vector<MatrixXf> > z;
     vector<MatrixXf> gamma;
     vector<MatrixXf> beta;
-    float d_mu;
-    vector< vector<MatrixXf> > d_var;
+    vector< vector<MatrixXf> > d_z;
+    vector<MatrixXf> d_mu;
+    vector<MatrixXf> d_var;
+    vector<MatrixXf> d_var_d_mu;
+    vector<MatrixXf> d_gamma;
+    vector<MatrixXf> d_beta;
 };
 
 
@@ -73,79 +77,53 @@ void Batch_Norm_Layer::forwardprop(const vector< vector<MatrixXf> > X) {
     if ( this->is_tensor ) {
         #pragma omp parallel for
         for ( int c = 0; c < this->channel_num; ++c ) {
-            // mu
             for ( int h = 0; h < this->X_shape[2]; ++h ) {
                 for ( int w = 0; w < this->X_shape[3]; ++w ) {
+                    // mu
                     this->mu[c](h, w) = 0.f;
                     for ( int n = 0; n < this->batch_size; ++n ) {
                         this->mu[c](h, w) += X[n][c](h, w);
                     }
-                }
-            }
-            this->mu[c] /= (float)this->batch_size;
+                    this->mu[c](h, w) /= (float)this->batch_size;
 
-            // var
-            for ( int h = 0; h < this->X_shape[2]; ++h ) {
-                for ( int w = 0; w < this->X_shape[3]; ++w ) {
+                    // var
                     this->var[c](h, w) = 0.f;
                     for ( int n = 0; n < this->batch_size; ++n ) {
-                        this->var[c](h, w) += pow(X[n][c](h, w) - this->mu[c](h, w), 2.f);
+                        this->var[c](h, w) += powf(X[n][c](h, w) - this->mu[c](h, w), 2.f);
+                    }
+                    this->var[c](h, w) /= (float)this->batch_size;
+
+                    // z, activate
+                    for ( int n = 0; n < this->batch_size; ++n ) {
+                        this->z[n][c](h, w) = (X[n][c](h, w) - this->mu[c](h, w))
+                                            / sqrt(this->var[c](h, w) + this->eps);
+                        this->_activated[n][c](h, w) = this->gamma[c](h, w) * this->z[n][c](h, w) + this->beta[c](h, w);
                     }
                 }
             }
-            this->var[c] /= (float)this->batch_size;
-
-            // z
-            for ( int n = 0; n < this->batch_size; ++n ) {
-                this->z[n][c] = ((X[n][c] - this->mu[c]).array() / sqrt(this->var[c].array() + this->eps)).matrix();
-            }
-
-            // activate
-            for ( int n = 0; n < this->batch_size; ++n ) {
-                this->_activated[n][c] = (this->gamma[c].array() * this->z[n][c].array() + this->beta[c].array()).matrix();
-            }
         }
     } else {
-        // mu
         #pragma omp parallel for
         for ( int c = 0; c < this->channel_num; ++c ) {
             for ( int p = 0; p < this->X_shape[3]; ++p ) {
+                // mu
                 this->mu[0](c, p) = 0.f;
                 for ( int n = 0; n < this->batch_size; ++n ) {
                     this->mu[0](c, p) += X[0][c](n, p);
                 }
-            }
-        }
-        this->mu[0] /= (float)this->batch_size;
+                this->mu[0](c, p) /= (float)this->batch_size;
 
-        // var
-        #pragma omp parallel for
-        for ( int c = 0; c < this->channel_num; ++c ) {
-            for ( int p = 0; p < this->X_shape[3]; ++p ) {
+                // var
                 this->var[0](c, p) = 0.f;
                 for ( int n = 0; n < this->batch_size; ++n ) {
-                    this->var[0](c, p) += pow(X[0][c](n, p) - this->mu[0](c, p), 2.f);
+                    this->var[0](c, p) += powf(X[0][c](n, p) - this->mu[0](c, p), 2.f);
                 }
-            }
-        }
-        this->var[0] /= (float)this->batch_size;
+                this->var[0](c, p) /= (float)this->batch_size;
 
-        // z
-        #pragma omp parallel for
-        for ( int c = 0; c < this->channel_num; ++c ) {
-            for ( int n = 0; n < this->batch_size; ++n ) {
-                for ( int p = 0; p < this->X_shape[3]; ++p ) {
-                    this->z[0][c](n, p) = pow(X[0][c](n, p) - this->mu[0](c, p), 2.f)
-                                        / sqrt(var[0](c, p) + this->eps);
-                }
-            }
-        }
-
-        // activate
-        #pragma omp parallel for
-        for ( int c = 0; c < this->channel_num; ++c ) {
-            for ( int n = 0; n < this->batch_size; ++n ) {
-                for ( int p = 0; p < this->X_shape[3]; ++p ) {
+                // z, activate
+                for ( int n = 0; n < this->batch_size; ++n ) {
+                    this->z[0][c](n, p) = (X[0][c](n, p) - this->mu[0](c, p))
+                                        / sqrt(this->var[0](c, p) + this->eps);
                     this->_activated[0][c](n, p) = this->gamma[0](c, p) * this->z[0][c](n, p) + this->beta[0](c, p);
                 }
             }
@@ -157,18 +135,16 @@ void Batch_Norm_Layer::forwardprop(const vector< vector<MatrixXf> > X) {
 void Batch_Norm_Layer::calc_delta(const shared_ptr<Layer> &next_layer,
                                   const shared_ptr<Layer> &prev_layer) {
     if ( this->is_tensor ) {
-        // d_var
+        // d_gamma, d_beta
         #pragma omp parallel for
-        for ( int n = 0; n < this->batch_size; ++n ) {
-            for ( int c = 0; c < this->channel_num; ++c ) {
-                for ( int h = 0; h < this->X_shape[2]; ++h ) {
-                    for ( int w = 0; w < this->X_shape[3]; ++w ) {
-                        this->d_var[n][c](h, w) = 0.f;
-                        for ( int m = 0; m < this->batch_size; ++m ) {
-                            this->d_var[n][c](h, w) -= prev_layer->_activated[m][c](h, w) - this->mu[c](h, w);
-                        }
-                        this->d_var[n][c](h, w) *= 2.f / pow(this->batch_size, 2.f);
-                        this->d_var[n][c](h, w) += 2.f / this->batch_size * (prev_layer->_activated[n][c](h, w) - this->mu[c](h, w));
+        for ( int c = 0; c < this->channel_num; ++c ) {
+            for ( int h = 0; h < this->X_shape[2]; ++h ) {
+                for ( int w = 0; w < this->X_shape[3]; ++w ) {
+                    this->d_gamma[c](h, w) = 0.f;
+                    this->d_beta[c](h, w) = 0.f;
+                    for ( int n = 0; n < this->batch_size; ++n ) {
+                        this->d_gamma[c](h, w) += next_layer->delta[n][c](h, w) * this->z[n][c](h, w);
+                        this->d_beta[c](h, w) += next_layer->delta[n][c](h, w);
                     }
                 }
             }
@@ -180,31 +156,24 @@ void Batch_Norm_Layer::calc_delta(const shared_ptr<Layer> &next_layer,
             for ( int c = 0; c < this->channel_num; ++c ) {
                 for ( int h = 0; h < this->X_shape[2]; ++h ) {
                     for ( int w = 0; w < this->X_shape[3]; ++w ) {
-                        this->delta[n][c](h, w) = 0.f;
-                        for ( int m = 0; m < this->batch_size; ++ m ) {
-                            float tmp = 0.f;
-                            tmp = d_mu + (prev_layer->_activated[m][c](h, w) - this->mu[c](h, w))
-                                / (2.f * (this->var[c](h, w) + this->eps)) * this->d_var[n][c](h, w);
-                            this->delta[n][c](h, w) -= next_layer->delta[m][c](h, w) * tmp;
-                        }
-                        this->delta[n][c](h, w) += next_layer->delta[n][c](h, w);
-                        this->delta[n][c](h, w) /= sqrt(this->var[c](h, w) + this->eps);
+                        this->delta[n][c](h, w) = next_layer->delta[n][c](h, w)
+                                                - (this->d_beta[c](h, w) + this->z[n][c](h, w) * this->d_gamma[c](h, w))
+                                                / (float)this->batch_size;
+                        this->delta[n][c](h, w) *= this->gamma[c](h, w) / sqrt(this->var[c](h, w) + this->eps);
                     }
                 }
             }
         }
     } else {
-        // d_var
+        // d_gamma, d_beta
         #pragma omp parallel for
         for ( int c = 0; c < this->channel_num; ++c ) {
-            for ( int n = 0; n < this->batch_size; ++n ) {
-                for ( int p = 0; p < this->X_shape[3]; ++p ) {
-                    this->d_var[0][c](n, p) = 0.f;
-                    for ( int m = 0; m < this->batch_size; ++m ) {
-                        this->d_var[0][c](n, p) -= prev_layer->_activated[0][c](n, p) - this->mu[0](c, p);
-                    }
-                    this->d_var[0][c](n, p) *= 2.f / pow(this->batch_size, 2.f);
-                    this->d_var[0][c](n, p) += 2.f / this->batch_size * (prev_layer->_activated[0][c](n, p) - this->mu[0](c, p));
+            for ( int p = 0; p < this->X_shape[3]; ++p ) {
+                this->d_gamma[0](c, p) = 0.f;
+                this->d_beta[0](c, p) = 0.f;
+                for ( int n = 0; n < this->batch_size; ++n ) {
+                    this->d_gamma[0](c, p) += next_layer->delta[0][c](n, p) * this->z[0][c](n, p);
+                    this->d_beta[0](c, p) += next_layer->delta[0][c](n, p);
                 }
             }
         }
@@ -214,15 +183,10 @@ void Batch_Norm_Layer::calc_delta(const shared_ptr<Layer> &next_layer,
         for ( int c = 0; c < this->channel_num; ++c ) {
             for ( int n = 0; n < this->batch_size; ++n ) {
                 for ( int p = 0; p < this->X_shape[3]; ++p ) {
-                    this->delta[0][c](n, p) = 0.f;
-                    for ( int m = 0; m < this->batch_size; ++ m ) {
-                        float tmp = 0.f;
-                        tmp = d_mu + (prev_layer->_activated[0][c](m, p) - this->mu[0](c, p))
-                            / (2.f * (this->var[0](c, p) + this->eps)) * this->d_var[0][c](n, p);
-                        this->delta[0][c](n, p) -= next_layer->delta[0][c](m, p) * tmp;
-                    }
-                    this->delta[0][c](n, p) += next_layer->delta[0][c](n, p);
-                    this->delta[0][c](n, p) /= sqrt(this->var[0](c, p) + this->eps);
+                    this->delta[0][c](n, p) = next_layer->delta[0][c](n, p)
+                                            - (this->d_beta[0](c, p) + this->z[0][c](n, p) * this->d_gamma[0](c, p))
+                                            / (float)this->batch_size;
+                    this->delta[0][c](n, p) *= this->gamma[0](c, p) / sqrt(this->var[0](c, p) + this->eps);
                 }
             }
         }
@@ -314,24 +278,65 @@ void Batch_Norm_Layer::allocate_memory(const int batch_size,
         this->beta.push_back(MatrixXf::Zero(this->channel_num, this->X_shape[3]));
     }
 
-    // d_mu
-    this->d_mu = 1.f / (float)this->batch_size;
-
-    // d_var
-    if ( is_tensor ) {
+    // d_z
+    if ( this->is_tensor ) {
         for ( int n = 0; n < this->batch_size; ++n ) {
-            vector<MatrixXf> tmp_d_var;
+            vector<MatrixXf> tmp;
             for ( int c = 0; c < this->channel_num; ++c ) {
-                tmp_d_var.push_back(MatrixXf::Zero(this->X_shape[2], this->X_shape[3]));
+                tmp.push_back(MatrixXf::Zero(this->X_shape[2], this->X_shape[3]));
             }
-            this->d_var.push_back(tmp_d_var);
+            this->d_z.push_back(tmp);
         }
     } else {
-        vector<MatrixXf> tmp_d_var;
+        this->d_z.resize(1);
         for ( int c = 0; c < this->channel_num; ++c ) {
-            tmp_d_var.push_back(MatrixXf::Zero(this->batch_size, this->X_shape[3]));
+            this->d_z[0].push_back(MatrixXf::Zero(this->X_shape[2], this->X_shape[3]));
         }
-        this->d_var.push_back(tmp_d_var);
+    }
+
+    // d_mu
+    if ( this->is_tensor ) {
+        for ( int c = 0; c < this->channel_num; ++c ) {
+            this->d_mu.push_back(MatrixXf::Zero(this->X_shape[2], this->X_shape[3]));
+        }
+    } else {
+        this->d_mu.push_back(MatrixXf::Zero(this->channel_num, this->X_shape[3]));
+    }
+
+    // d_var
+    if ( this->is_tensor ) {
+        for ( int c = 0; c < this->channel_num; ++c ) {
+            this->d_var.push_back(MatrixXf::Zero(this->X_shape[2], this->X_shape[3]));
+        }
+    } else {
+        this->d_var.push_back(MatrixXf::Zero(this->channel_num, this->X_shape[3]));
+    }
+
+    // d_var_d_mu
+    if ( this->is_tensor ) {
+        for ( int c = 0; c < this->channel_num; ++c ) {
+            this->d_var_d_mu.push_back(MatrixXf::Zero(this->X_shape[2], this->X_shape[3]));
+        }
+    } else {
+        this->d_var_d_mu.push_back(MatrixXf::Zero(this->channel_num, this->X_shape[3]));
+    }
+
+    // d_gamma
+    if ( is_tensor ) {
+        for ( int c = 0; c < this->channel_num; ++c ) {
+            this->d_gamma.push_back(MatrixXf::Ones(this->X_shape[2], this->X_shape[3]));
+        }
+    } else {
+        this->d_gamma.push_back(MatrixXf::Ones(this->channel_num, this->X_shape[3]));
+    }
+
+    // d_beta
+    if ( is_tensor ) {
+        for ( int c = 0; c < this->channel_num; ++c ) {
+            this->d_beta.push_back(MatrixXf::Zero(this->X_shape[2], this->X_shape[3]));
+        }
+    } else {
+        this->d_beta.push_back(MatrixXf::Zero(this->channel_num, this->X_shape[3]));
     }
 }
 

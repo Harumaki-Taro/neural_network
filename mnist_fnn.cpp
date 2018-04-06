@@ -45,12 +45,14 @@ int main(void) {
     Neural_Network nn;
     int W1_shape[2] = { 784, 500 };
     nn.add_layer( Affine_Layer(1, W1_shape) );
+    nn.add_layer( Batch_Norm_Layer() );
     nn.add_layer( Activate_Layer(relu, relu_d, 1) );
-    nn.add_layer( Dropout(1) );
+    // nn.add_layer( Dropout(1) );
     int W2_shape[2] = { 500, 200 };
     nn.add_layer( Affine_Layer(1, W2_shape) );
+    nn.add_layer( Batch_Norm_Layer() );
     nn.add_layer( Activate_Layer(relu, relu_d, 1) );
-    nn.add_layer( Dropout(1) );
+    // nn.add_layer( Dropout(1) );
     int W3_shape[2] = { 200, 10 };
     nn.add_layer( Affine_Layer(1, W3_shape) );
     nn.add_layer( Output_Layer(softmax, mean_cross_entropy, diff, 10) );

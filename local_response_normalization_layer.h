@@ -90,7 +90,7 @@ void LRN_Layer::forwardprop(const vector< vector<MatrixXf> > X) {
                     }
                     tmp *= this->alpha;
                     tmp += this->t;
-                    this->_activated[n][k](h, w) = X[n][k](h, w) / tmp;
+                    this->_activated[n][k](h, w) = X[n][k](h, w) / pow(tmp, this->beta);
                 }
             }
         }
@@ -115,19 +115,11 @@ void LRN_Layer::calc_delta(const shared_ptr<Layer> &next_layer,
                         for ( int c = C_min; c <= C_max; ++c ) {
                             tm += pow(prev_layer->_activated[n][c](h, w), 2.f);
                         }
-                        tm = pow(this->t + tm * this->alpha, float(this->beta+1));
-                        this->delta[n][k](h, w) -= next_layer->delta[n][s](h ,w) * prev_layer->_activated[n][s](h, w) / tm;
+                        tm = this->t + tm * this->alpha;
+                        this->delta[n][k](h, w) -= next_layer->delta[n][s](h ,w) * this->_activated[n][s](h, w) / tm;
                     }
                     this->delta[n][k](h, w) *= 2.f * this->alpha * this->beta * prev_layer->_activated[n][k](h, w);
-                    int R_min = max(0, k - (int)floor((float)this->map_num / 2.f));
-                    int R_max = min(this->channel_num-1, k + (int)floor(float(this->map_num-1)/2.f));
-                    float tmp = 0.f;
-                    for ( int r = R_min; r <= R_max; ++r ) {
-                        tmp += pow(prev_layer->_activated[n][r](h, w), 2.f);
-                    }
-                    tmp *= this->alpha;
-                    tmp += this->t;
-                    this->delta[n][k](h, w) += next_layer->delta[n][k](h, w) / pow(tmp, (float)this->beta);
+                    this->delta[n][k](h, w) += next_layer->delta[n][k](h, w) * this->_activated[n][k](h, w) / prev_layer->_activated[n][k](h, w);
                 }
             }
         }
